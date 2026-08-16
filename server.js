@@ -45,7 +45,7 @@ app.post("/api/chat", async (req, res) => {
         const lastMessage = userMessages[userMessages.length - 1].content;
 
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash", 
+            model: "gemini-2.5-flash", 
             systemInstruction: AI_INSTRUCTIONS
         });
         
@@ -104,7 +104,7 @@ app.post('/webhook', async (req, res) => {
 
                     try {
                         const model = genAI.getGenerativeModel({ 
-                            model: "gemini-3.6-flash",
+                            model: "gemini-2.5-flash",
                             systemInstruction: AI_INSTRUCTIONS
                         });
 
@@ -142,7 +142,7 @@ async function sendMessengerMessage(sender_psid, response_text) {
 }
 
 
-// Server Listen (एक ठाउँ मात्र सही तरिकाले राखिएको)
+// Server Listen
 app.listen(PORT, "0.0.0.0", () => {
     console.log("================================");
     console.log("    NISCHAL AI SERVER (GEMINI)    ");
