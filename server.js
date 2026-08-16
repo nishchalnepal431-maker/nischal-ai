@@ -32,7 +32,7 @@ app.post("/api/chat", async (req, res) => {
         const lastMessage = userMessages[userMessages.length - 1].content;
 
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash-lite",
             systemInstruction: AI_INSTRUCTIONS
         });
         
