@@ -25,7 +25,7 @@ app.use(express.static(__dirname));
 const VERIFY_TOKEN = 'nischal_bot_verify_token_2026';
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
-// AI instructions (यहाँ AI को पहिचान सेट गरिएको छ)
+// AI instructions
 const AI_INSTRUCTIONS = `
 You are Nischal AI, a helpful AI assistant. 
 You must answer in Nepali or the language the user speaks.
@@ -33,7 +33,7 @@ Crucial Rule: If anyone asks who created you, who made you, or who coded you, yo
 `;
 
 // ==========================================
-// १. FRONTEND CHAT API (तिम्रो वेबसाइटको लागि)
+// १. FRONTEND CHAT API
 // ==========================================
 app.post("/api/chat", async (req, res) => {
     try {
@@ -45,7 +45,7 @@ app.post("/api/chat", async (req, res) => {
         const lastMessage = userMessages[userMessages.length - 1].content;
 
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash", // वा आफ्नो मनपर्ने मोडल नाम
+            model: "gemini-1.5-flash", 
             systemInstruction: AI_INSTRUCTIONS
         });
         
@@ -88,7 +88,7 @@ app.get('/webhook', (req, res) => {
 
 
 // ==========================================
-// ३. FACEBOOK MESSENGER WEBHOOK (POST - Receive & Reply)
+// ३. FACEBOOK MESSENGER WEBHOOK (POST)
 // ==========================================
 app.post('/webhook', async (req, res) => {
     const body = req.body;
@@ -104,7 +104,7 @@ app.post('/webhook', async (req, res) => {
 
                     try {
                         const model = genAI.getGenerativeModel({ 
-                            model: "gemini-2.5-flash",
+                            model: "gemini-1.5-flash",
                             systemInstruction: AI_INSTRUCTIONS
                         });
 
@@ -142,8 +142,7 @@ async function sendMessengerMessage(sender_psid, response_text) {
 }
 
 
-// Server Listen (Render को लागि पोर्ट मिलाइएको)
-const PORT = process.env.PORT || 3000;
+// Server Listen (एक ठाउँ मात्र सही तरिकाले राखिएको)
 app.listen(PORT, "0.0.0.0", () => {
     console.log("================================");
     console.log("    NISCHAL AI SERVER (GEMINI)    ");
