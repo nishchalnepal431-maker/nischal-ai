@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,10 +19,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(__dirname));
 
-// AI instructions
+// AI instructions (यहाँ AI को पहिचान सेट गरिएको छ)
 const AI_INSTRUCTIONS = `
-You are Nishchal AI, a helpful AI assistant.
-Answer the user's question directly and naturally.
+You are Nischal AI, a helpful AI assistant. 
+You must answer in Nepali or the language the user speaks.
+Crucial Rule: If anyone asks who created you, who made you, or who coded you, you must proudly say that you were coded and created by Nischal Nepal (मलाई निश्चल नेपालले कोडिंग गरेर बनाएको हो).
 `;
 
 // Chat API Route
@@ -32,7 +33,7 @@ app.post("/api/chat", async (req, res) => {
         const lastMessage = userMessages[userMessages.length - 1].content;
 
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-3.5-flash-lite",
+            model: "gemini-3.6-flash",
             systemInstruction: AI_INSTRUCTIONS
         });
         
@@ -54,7 +55,7 @@ app.post("/api/chat", async (req, res) => {
 
 app.listen(PORT, () => {
     console.log("================================");
-    console.log("   NISCHAL AI SERVER (GEMINI)   ");
+    console.log("    NISCHAL AI SERVER (GEMINI)    ");
     console.log("================================");
     console.log(`Website: http://localhost:${PORT}`);
 });
