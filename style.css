@@ -42,7 +42,9 @@ body {
 
     color: var(--text);
 
+    /* मोबाइल कीबोर्ड फिक्सका लागि dvh प्रयोग गरिएको */
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 
     transition: .3s;
@@ -80,11 +82,9 @@ body::before {
 }
 
 @keyframes floatGlow {
-
     from {
         transform: translate(0,0);
     }
-
     to {
         transform: translate(-100px,100px);
     }
@@ -96,33 +96,25 @@ body::before {
 .app {
     display: flex;
     height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
 }
 
 
 /* ================= SIDEBAR ================= */
 
 .sidebar {
-
     width: 285px;
-
     background: var(--sidebar);
-
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-
     border-right: 1px solid var(--border);
-
     padding: 18px;
-
     display: flex;
     flex-direction: column;
-
     overflow-y: auto;
-
     position: relative;
-
     z-index: 5;
-
     transition: .3s;
 }
 
@@ -130,35 +122,23 @@ body::before {
 /* Logo */
 
 .logo {
-
     display: flex;
-
     align-items: center;
-
     gap: 12px;
-
     margin-bottom: 25px;
 }
 
 
 .logo-icon {
-
     width: 48px;
     height: 48px;
-
     border-radius: 15px;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
     color: white;
-
     font-size: 23px;
-
     font-weight: 800;
-
     background:
         linear-gradient(
             135deg,
@@ -166,21 +146,17 @@ body::before {
             #00c6ff,
             #ec4899
         );
-
     box-shadow:
         0 0 20px rgba(0,198,255,.35),
         0 0 35px rgba(124,58,237,.25);
-
     animation: logoPulse 3s infinite;
 }
 
 
 @keyframes logoPulse {
-
     0%,100% {
         transform: scale(1);
     }
-
     50% {
         transform: scale(1.05);
     }
@@ -188,9 +164,7 @@ body::before {
 
 
 .logo h2 {
-
     font-size: 19px;
-
     background:
         linear-gradient(
             90deg,
@@ -198,17 +172,13 @@ body::before {
             #7c3aed,
             #ec4899
         );
-
     -webkit-background-clip: text;
-
     -webkit-text-fill-color: transparent;
 }
 
 
 .logo span {
-
     color: var(--muted);
-
     font-size: 11px;
 }
 
@@ -216,39 +186,27 @@ body::before {
 /* New Chat */
 
 .new-chat {
-
     width: 100%;
-
     padding: 13px;
-
     border: 1px solid rgba(255,255,255,.15);
-
     border-radius: 12px;
-
     color: white;
-
     font-size: 14px;
-
     cursor: pointer;
-
     background:
         linear-gradient(
             135deg,
             #7c3aed,
             #2563eb
         );
-
     box-shadow:
         0 5px 20px rgba(124,58,237,.25);
-
     transition: .25s;
 }
 
 
 .new-chat:hover {
-
     transform: translateY(-2px);
-
     box-shadow:
         0 8px 28px rgba(0,198,255,.35);
 }
@@ -257,16 +215,10 @@ body::before {
 /* Topic title */
 
 .side-title {
-
     color: var(--muted);
-
     font-size: 11px;
-
-    margin:
-        25px 8px 10px;
-
+    margin: 25px 8px 10px;
     letter-spacing: 1px;
-
     text-transform: uppercase;
 }
 
@@ -274,35 +226,24 @@ body::before {
 /* Features */
 
 .feature {
-
     padding: 10px;
-
     border-radius: 10px;
-
     font-size: 13px;
-
     cursor: pointer;
-
     margin-bottom: 3px;
-
     transition: .2s;
-
     border: 1px solid transparent;
 }
 
 
 .feature:hover {
-
     background:
         linear-gradient(
             90deg,
             rgba(124,58,237,.18),
             rgba(0,198,255,.10)
         );
-
-    border-color:
-        rgba(124,58,237,.25);
-
+    border-color: rgba(124,58,237,.25);
     transform: translateX(4px);
 }
 
@@ -310,41 +251,27 @@ body::before {
 /* Bottom */
 
 .sidebar-bottom {
-
     margin-top: auto;
-
     padding-top: 15px;
 }
 
 
 .sidebar-bottom button {
-
     width: 100%;
-
     padding: 11px;
-
     border: 1px solid transparent;
-
     background: transparent;
-
     color: var(--text);
-
     text-align: left;
-
     border-radius: 10px;
-
     cursor: pointer;
-
     margin-top: 5px;
-
     transition: .2s;
 }
 
 
 .sidebar-bottom button:hover {
-
     background: var(--card);
-
     border-color: var(--border);
 }
 
@@ -352,91 +279,64 @@ body::before {
 /* ================= MAIN ================= */
 
 .main {
-
     flex: 1;
-
     display: flex;
-
     flex-direction: column;
-
     min-width: 0;
-
+    height: 100vh;
+    height: 100dvh;
     position: relative;
+    overflow: hidden;
 }
 
 
 /* ================= HEADER ================= */
 
 .header {
-
     height: 68px;
-
-    border-bottom:
-        1px solid var(--border);
-
+    border-bottom: 1px solid var(--border);
     display: flex;
-
     align-items: center;
-
     padding: 0 22px;
-
-    background:
-        rgba(8,11,24,.55);
-
+    background: rgba(8,11,24,.55);
     backdrop-filter: blur(20px);
-
     z-index: 3;
 }
 
 
 .header-title {
-
     display: flex;
-
     align-items: center;
-
     gap: 10px;
 }
 
 
 .header-title strong {
-
     display: block;
-
     font-size: 15px;
 }
 
 
 .header-title small {
-
     display: block;
-
     color: var(--muted);
-
     font-size: 11px;
 }
 
 
 .online-dot {
-
     width: 10px;
-
     height: 10px;
-
     border-radius: 50%;
-
     background: #22c55e;
-
     box-shadow:
         0 0 10px #22c55e,
         0 0 20px rgba(34,197,94,.5);
-
     animation: online 2s infinite;
 }
 
 
 @keyframes online {
-
     50% {
         opacity: .4;
     }
@@ -444,53 +344,34 @@ body::before {
 
 
 .header-btn {
-
     margin-left: auto;
-
-    border:
-        1px solid var(--border);
-
+    border: 1px solid var(--border);
     background:
         linear-gradient(
             135deg,
             rgba(124,58,237,.15),
             rgba(0,198,255,.10)
         );
-
     color: var(--text);
-
     padding: 9px 14px;
-
     border-radius: 10px;
-
     cursor: pointer;
-
     transition: .2s;
 }
 
 
 .header-btn:hover {
-
-    border-color:
-        rgba(0,198,255,.5);
-
-    box-shadow:
-        0 0 15px rgba(0,198,255,.15);
+    border-color: rgba(0,198,255,.5);
+    box-shadow: 0 0 15px rgba(0,198,255,.15);
 }
 
 
 .menu-btn {
-
     display: none;
-
     border: none;
-
     background: transparent;
-
     color: var(--text);
-
     font-size: 23px;
-
     margin-right: 12px;
 }
 
@@ -498,14 +379,12 @@ body::before {
 /* ================= CHAT ================= */
 
 .chat {
-
     flex: 1;
-
     overflow-y: auto;
-
     padding: 40px 20px;
-
     scroll-behavior: smooth;
+    /* मोबाइलमा तलको कन्टेन्ट नछोपोस् भनेर */
+    min-height: 0; 
 }
 
 
@@ -513,20 +392,17 @@ body::before {
 
 .chat::-webkit-scrollbar,
 .sidebar::-webkit-scrollbar {
-
     width: 6px;
 }
 
 
 .chat::-webkit-scrollbar-thumb,
 .sidebar::-webkit-scrollbar-thumb {
-
     background:
         linear-gradient(
             #7c3aed,
             #00c6ff
         );
-
     border-radius: 10px;
 }
 
@@ -534,25 +410,18 @@ body::before {
 /* ================= WELCOME ================= */
 
 .welcome {
-
     max-width: 780px;
-
     margin: 60px auto;
-
     text-align: center;
-
-    animation:
-        welcomeIn .7s ease;
+    animation: welcomeIn .7s ease;
 }
 
 
 @keyframes welcomeIn {
-
     from {
         opacity: 0;
         transform: translateY(20px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -561,21 +430,14 @@ body::before {
 
 
 .welcome-icon {
-
     width: 85px;
     height: 85px;
-
     margin: auto;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
     border-radius: 25px;
-
     font-size: 42px;
-
     background:
         linear-gradient(
             135deg,
@@ -583,22 +445,17 @@ body::before {
             #00c6ff,
             #ec4899
         );
-
     box-shadow:
         0 0 25px rgba(0,198,255,.25),
         0 0 55px rgba(124,58,237,.25);
-
-    animation:
-        robotFloat 3s infinite ease-in-out;
+    animation: robotFloat 3s infinite ease-in-out;
 }
 
 
 @keyframes robotFloat {
-
     0%,100% {
         transform: translateY(0);
     }
-
     50% {
         transform: translateY(-8px);
     }
@@ -606,11 +463,8 @@ body::before {
 
 
 .welcome h1 {
-
     margin-top: 22px;
-
     font-size: 34px;
-
     background:
         linear-gradient(
             90deg,
@@ -618,21 +472,15 @@ body::before {
             #7c3aed,
             #ec4899
         );
-
     -webkit-background-clip: text;
-
     -webkit-text-fill-color: transparent;
 }
 
 
 .welcome p {
-
     margin: 13px auto 30px;
-
     color: var(--muted);
-
     max-width: 620px;
-
     line-height: 1.7;
 }
 
@@ -640,85 +488,54 @@ body::before {
 /* ================= SUGGESTIONS ================= */
 
 .suggestions {
-
     display: grid;
-
-    grid-template-columns:
-        1fr 1fr;
-
+    grid-template-columns: 1fr 1fr;
     gap: 14px;
 }
 
 
 .suggestion {
-
     padding: 17px;
-
-    border:
-        1px solid var(--border);
-
+    border: 1px solid var(--border);
     background:
         linear-gradient(
             135deg,
             rgba(124,58,237,.10),
             rgba(0,198,255,.07)
         );
-
     backdrop-filter: blur(10px);
-
     color: var(--text);
-
     border-radius: 14px;
-
     cursor: pointer;
-
     text-align: left;
-
     transition: .25s;
-
     font-size: 14px;
 }
 
 
 .suggestion:hover {
-
-    transform:
-        translateY(-4px);
-
-    border-color:
-        rgba(0,198,255,.45);
-
-    box-shadow:
-        0 10px 30px
-        rgba(0,198,255,.10);
+    transform: translateY(-4px);
+    border-color: rgba(0,198,255,.45);
+    box-shadow: 0 10px 30px rgba(0,198,255,.10);
 }
 
 
 /* ================= MESSAGES ================= */
 
 .message {
-
     max-width: 880px;
-
-    margin:
-        0 auto 25px;
-
+    margin: 0 auto 25px;
     display: flex;
-
     gap: 13px;
-
-    animation:
-        messageIn .35s ease;
+    animation: messageIn .35s ease;
 }
 
 
 @keyframes messageIn {
-
     from {
         opacity: 0;
         transform: translateY(8px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -727,40 +544,28 @@ body::before {
 
 
 .avatar {
-
     min-width: 38px;
-
     height: 38px;
-
     border-radius: 12px;
-
     display: flex;
-
     justify-content: center;
-
     align-items: center;
-
     font-size: 17px;
 }
 
 
 .user-avatar {
-
     background:
         linear-gradient(
             135deg,
             #2563eb,
             #7c3aed
         );
-
-    box-shadow:
-        0 0 15px
-        rgba(124,58,237,.25);
+    box-shadow: 0 0 15px rgba(124,58,237,.25);
 }
 
 
 .ai-avatar {
-
     background:
         linear-gradient(
             135deg,
@@ -768,44 +573,26 @@ body::before {
             #7c3aed,
             #ec4899
         );
-
-    box-shadow:
-        0 0 18px
-        rgba(0,198,255,.25);
+    box-shadow: 0 0 18px rgba(0,198,255,.25);
 }
 
 
 .message-content {
-
     flex: 1;
-
     line-height: 1.75;
-
     white-space: pre-wrap;
-
     overflow-wrap: anywhere;
-
-    background:
-        rgba(255,255,255,.035);
-
-    border:
-        1px solid rgba(255,255,255,.06);
-
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.06);
     padding: 12px 15px;
-
-    border-radius:
-        4px 15px 15px 15px;
+    border-radius: 4px 15px 15px 15px;
 }
 
 
 .message-name {
-
     font-weight: 700;
-
     font-size: 13px;
-
     margin-bottom: 5px;
-
     color: #7dd3fc;
 }
 
@@ -813,31 +600,19 @@ body::before {
 /* Copy */
 
 .copy-btn {
-
     margin-top: 9px;
-
     padding: 6px 10px;
-
-    border:
-        1px solid var(--border);
-
-    background:
-        rgba(255,255,255,.04);
-
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
     color: var(--muted);
-
     border-radius: 8px;
-
     cursor: pointer;
-
     transition: .2s;
 }
 
 
 .copy-btn:hover {
-
     color: white;
-
     background:
         linear-gradient(
             135deg,
@@ -850,32 +625,23 @@ body::before {
 /* ================= TYPING ================= */
 
 .typing {
-
     display: flex;
-
     gap: 5px;
-
     padding: 8px 0;
 }
 
 
 .typing span {
-
     width: 8px;
-
     height: 8px;
-
     border-radius: 50%;
-
     background:
         linear-gradient(
             135deg,
             #00c6ff,
             #ec4899
         );
-
-    animation:
-        bounce 1.2s infinite;
+    animation: bounce 1.2s infinite;
 }
 
 
@@ -890,11 +656,9 @@ body::before {
 
 
 @keyframes bounce {
-
     0%,80%,100% {
         transform: translateY(0);
     }
-
     40% {
         transform: translateY(-7px);
     }
@@ -904,101 +668,63 @@ body::before {
 /* ================= INPUT ================= */
 
 .input-area {
-
-    padding:
-        12px 20px 18px;
-
+    padding: 12px 20px 18px;
     background:
         linear-gradient(
             transparent,
-            rgba(8,11,24,.8)
+            rgba(8,11,24,.9)
         );
+    flex-shrink: 0;
+    position: relative;
+    z-index: 4;
 }
 
 
 .input-box {
-
     max-width: 880px;
-
     margin: auto;
-
-    border:
-        1px solid rgba(124,58,237,.35);
-
-    background:
-        rgba(20,23,45,.75);
-
-    backdrop-filter:
-        blur(20px);
-
+    border: 1px solid rgba(124,58,237,.35);
+    background: rgba(20,23,45,.85);
+    backdrop-filter: blur(20px);
     border-radius: 18px;
-
-    padding:
-        10px 10px 10px 16px;
-
+    padding: 10px 10px 10px 16px;
     display: flex;
-
     align-items: flex-end;
-
-    box-shadow:
-        0 0 30px
-        rgba(124,58,237,.10);
-
+    box-shadow: 0 0 30px rgba(124,58,237,.10);
     transition: .25s;
 }
 
 
 .input-box:focus-within {
-
-    border-color:
-        rgba(0,198,255,.7);
-
-    box-shadow:
-        0 0 30px
-        rgba(0,198,255,.15);
+    border-color: rgba(0,198,255,.7);
+    box-shadow: 0 0 30px rgba(0,198,255,.15);
 }
 
 
 textarea {
-
     flex: 1;
-
     resize: none;
-
     border: none;
-
     outline: none;
-
     background: transparent;
-
     color: var(--text);
-
     font-family: inherit;
-
     font-size: 15px;
-
     line-height: 23px;
-
     max-height: 150px;
 }
 
 
 textarea::placeholder {
-
     color: #7f89a5;
 }
 
 
 .send-btn {
-
     width: 42px;
-
     height: 42px;
-
     border: none;
-
     border-radius: 12px;
-
     background:
         linear-gradient(
             135deg,
@@ -1006,41 +732,24 @@ textarea::placeholder {
             #2563eb,
             #00c6ff
         );
-
     color: white;
-
     cursor: pointer;
-
     font-size: 19px;
-
-    box-shadow:
-        0 0 18px
-        rgba(0,198,255,.25);
-
+    box-shadow: 0 0 18px rgba(0,198,255,.25);
     transition: .2s;
 }
 
 
 .send-btn:hover {
-
-    transform:
-        scale(1.08)
-        rotate(-3deg);
-
-    box-shadow:
-        0 0 28px
-        rgba(0,198,255,.45);
+    transform: scale(1.08) rotate(-3deg);
+    box-shadow: 0 0 28px rgba(0,198,255,.45);
 }
 
 
 .input-info {
-
     text-align: center;
-
     color: var(--muted);
-
     font-size: 10px;
-
     margin-top: 8px;
 }
 
@@ -1048,110 +757,67 @@ textarea::placeholder {
 /* ================= MOBILE ================= */
 
 @media (max-width: 700px) {
-
     .sidebar {
-
         position: fixed;
-
         left: -290px;
-
         top: 0;
-
         bottom: 0;
-
         z-index: 20;
-
-        box-shadow:
-            10px 0 40px
-            rgba(0,0,0,.4);
+        box-shadow: 10px 0 40px rgba(0,0,0,.4);
     }
 
-
     .sidebar.open {
-
         left: 0;
     }
 
-
     .menu-btn {
-
         display: block;
     }
 
-
     .header {
-
         padding: 0 12px;
     }
 
-
     .header-btn {
-
-        padding:
-            8px 10px;
-
+        padding: 8px 10px;
         font-size: 12px;
     }
 
-
     .chat {
-
-        padding:
-            25px 12px;
+        padding: 20px 12px;
     }
-
 
     .welcome {
-
-        margin:
-            35px auto;
+        margin: 25px auto;
     }
 
-
     .welcome-icon {
-
         width: 70px;
         height: 70px;
-
         font-size: 33px;
     }
 
-
     .welcome h1 {
-
         font-size: 24px;
     }
 
-
     .suggestions {
-
-        grid-template-columns:
-            1fr;
+        grid-template-columns: 1fr;
     }
 
-
     .message {
-
         gap: 9px;
     }
 
-
     .message-content {
-
-        padding:
-            10px 12px;
+        padding: 10px 12px;
     }
-
 
     .input-area {
-
-        padding:
-            8px 10px 12px;
+        padding: 8px 10px 12px;
     }
 
-
     .input-box {
-
         border-radius: 15px;
     }
 }
