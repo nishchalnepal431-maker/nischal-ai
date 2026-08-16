@@ -142,10 +142,11 @@ async function sendMessengerMessage(sender_psid, response_text) {
 }
 
 
-// Server Listen
-app.listen(PORT, () => {
+// Server Listen (Render को लागि पोर्ट मिलाइएको)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
     console.log("================================");
     console.log("    NISCHAL AI SERVER (GEMINI)    ");
     console.log("================================");
-    console.log(`Website: http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
