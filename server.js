@@ -104,7 +104,7 @@ app.post('/webhook', async (req, res) => {
 
                     try {
                         const model = genAI.getGenerativeModel({ 
-                            model: "gemini-1.5-flash",
+                            model: "gemini-3.6-flash",
                             systemInstruction: AI_INSTRUCTIONS
                         });
 
