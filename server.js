@@ -45,7 +45,7 @@ app.post("/api/chat", async (req, res) => {
         const lastMessage = userMessages[userMessages.length - 1].content;
 
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-3.6-flash", 
+            model: "gemini-3.1-flash-lite", 
             systemInstruction: AI_INSTRUCTIONS
         });
         
@@ -104,7 +104,7 @@ app.post('/webhook', async (req, res) => {
 
                     try {
                         const model = genAI.getGenerativeModel({ 
-                            model: "gemini-3.6-flash",
+                            model: "gemini-3.1-flash-lite",
                             systemInstruction: AI_INSTRUCTIONS
                         });
 
