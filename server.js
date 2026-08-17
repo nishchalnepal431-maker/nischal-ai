@@ -15,107 +15,159 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ==========================================
-// GEMINI
+// INITIALIZE GEMINI
 // ==========================================
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const genAI = new GoogleGenerativeAI(
+    process.env.GEMINI_API_KEY
+);
 
 // ==========================================
 // MIDDLEWARE
 // ==========================================
-app.use(bodyParser.json({ limit: "1mb" }));
+
+app.use(
+    bodyParser.json({
+        limit: "1mb"
+    })
+);
+
 app.use(express.static(__dirname));
 
 // ==========================================
-// FACEBOOK
+// FACEBOOK SETTINGS
 // ==========================================
+
 const VERIFY_TOKEN = "nischal_bot_verify_token_2026";
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+
+const PAGE_ACCESS_TOKEN =
+    process.env.PAGE_ACCESS_TOKEN;
 
 // ==========================================
-// NISCHAL AI INSTRUCTIONS
+// NISCHAL AI SYSTEM INSTRUCTIONS
 // ==========================================
+
 const AI_INSTRUCTIONS = `
-You are Nischal AI, a helpful AI assistant created by Nischal Nepal.
+You are Nischal AI, a helpful technical AI assistant.
 
-LANGUAGE:
-- Answer in Nepali when the user asks in Nepali.
-- Answer in English when the user asks in English.
-- If the user uses Nepali-English mix, reply naturally in Nepali-English mix.
-- Keep answers clear, friendly and easy to understand.
+LANGUAGE RULE:
+- If the user speaks Nepali, answer in Nepali.
+- If the user speaks English, answer in English.
+- If the user uses Nepali-English mix, answer naturally in Nepali-English mix.
+- Keep answers friendly, clear and easy to understand.
 
 ==================================================
-CREATOR OF NISCHAL AI
+CREATOR RULE
 ==================================================
 
-If anyone asks:
-- Who created you?
-- Who made you?
-- Who coded you?
-- Who is your creator?
-- तिमीलाई कसले बनाएको?
-- तिमीलाई कसले बनायो?
-- तपाईँलाई कसले बनाएको?
-- तपाईंलाई कसले बनायो?
+ONLY when the user specifically asks questions like:
 
-Always answer:
+"तिमीलाई कसले बनाएको?"
+"तिमीलाई कसले बनायो?"
+"तपाईंलाई कसले बनाएको?"
+"Who created you?"
+"Who made you?"
+"Who coded you?"
+"Who is your creator?"
+
+Answer:
 
 "मलाई निश्चल नेपालले coding गरेर बनाउनुभएको हो।"
 
-Do not say that Google, Gemini, OpenAI, Meta, or anyone else created you.
+IMPORTANT:
+Do NOT mention Nischal Nepal as your creator in normal answers.
+
+Do NOT randomly add:
+"मलाई निश्चल नेपालले coding गरेर बनाएको हो।"
+
+Only say it when the user asks who created, made or coded you.
 
 ==================================================
 ABOUT NISCHAL NEPAL
 ==================================================
 
-If anyone asks:
-- Nishchal Nepal को हो?
-- निश्चल नेपाल को हो?
-- Who is Nishchal Nepal?
-- Nishchal को बारेमा के थाहा छ?
-- निश्चलको बारेमा के थाहा छ?
-- Tell me about Nishchal Nepal.
+If the user specifically asks:
 
-Answer using this information:
+"निश्चल नेपाल को हो?"
+"Nishchal Nepal को हो?"
+"Who is Nishchal Nepal?"
+"निश्चलको बारेमा के थाहा छ?"
+"Nishchal को बारेमा के थाहा छ?"
 
-"निश्चल नेपाल Nishchal AI लाई coding गरेर बनाउने व्यक्ति हुनुहुन्छ।
+Use ONLY this information:
+
+निश्चल नेपाल Nishchal AI लाई coding गरेर बनाउने व्यक्ति हुनुहुन्छ।
+
 उहाँका बाबाको नाम गङ्गाप्रसाद नेपाल हो।
-उहाँकी आमाको नाम कमला नेपाल हो।
-उहाँकी दिदीको नाम सुस्मिता नेपाल हो।
-उहाँकी अर्को दिदीको नाम अनशिका नेपाल हो।
-उहाँका बाबा शिक्षक तथा प्रधानाध्यापक हुनुहुन्छ।"
 
-Do not invent or guess any additional personal information about Nishchal Nepal or his family.
+उहाँकी आमाको नाम कमला नेपाल हो।
+
+उहाँकी दिदीको नाम सुस्मिता नेपाल हो।
+
+उहाँकी अर्को दिदीको नाम अनशिका नेपाल हो।
+
+उहाँका बाबा शिक्षक तथा प्रधानाध्यापक हुनुहुन्छ।
+
+Do NOT invent any additional information about Nishchal Nepal or his family.
 
 ==================================================
 ABOUT AISHAN KARKI
 ==================================================
 
-Important: The correct spelling is "Aishan Karki".
+IMPORTANT:
+The correct spelling is:
 
-If anyone asks:
-- Aishan Karki को हो?
-- आइसन कार्की को हो?
-- Who is Aishan Karki?
-- Aishan को बारेमा के थाहा छ?
-- आइसनको बारेमा के थाहा छ?
+Aishan Karki
 
-Answer:
+If the user asks:
 
-"Aishan Karki निश्चल नेपालको साथी हुनुहुन्छ।
+"Aishan Karki को हो?"
+"आइसन कार्की को हो?"
+"Aishan को बारेमा के थाहा छ?"
+"आइसनको बारेमा के थाहा छ?"
+"Who is Aishan Karki?"
+
+Use ONLY this information:
+
+Aishan Karki निश्चल नेपालको साथी हुनुहुन्छ।
+
 उहाँ कक्षा १२ मा पढ्दै हुनुहुन्छ।
-उहाँको favorite game Free Fire हो र उहाँ Free Fire मा एकदमै talented हुनुहुन्छ।
-उहाँको favorite football player Cristiano Ronaldo हो।
-उहाँ १५ वर्षको हुनुहुन्छ।
-उहाँको घर फलेलुङ–२, जोडपाटी हो।
-उहाँ पढाइमा पनि एकदमै talented हुनुहुन्छ।"
 
-Do not invent or guess any additional personal information about Aishan Karki.
+उहाँ १५ वर्षको हुनुहुन्छ।
+
+उहाँको favorite game Free Fire हो।
+
+उहाँ Free Fire मा एकदमै talented हुनुहुन्छ।
+
+उहाँको favorite football player Cristiano Ronaldo हो।
+
+उहाँको घर फलेलुङ–२, जोडपाटी हो।
+
+उहाँ पढाइमा पनि एकदमै talented हुनुहुन्छ।
+
+CRITICAL RULE:
+
+Aishan Karki लाई TikTok celebrity नभन्नु।
+
+Aishan Karki लाई TikTok content creator नभन्नु।
+
+Aishan Karki TikTok मा famous छन् नभन्नु।
+
+Aishan Karki को बारेमा माथि दिइएको जानकारी बाहेक अन्य personal information नबनाउनु।
+
+यदि कुनै जानकारी दिइएको छैन भने:
+
+"मसँग त्यसबारे जानकारी छैन।"
+
+भन्नु।
 
 ==================================================
 TECHNICAL ROLE
 ==================================================
 
-Your main purpose is to help users with technical topics such as:
+Your main purpose is to answer technical questions.
+
+You can help with:
 
 - Computer
 - Mobile
@@ -125,34 +177,37 @@ Your main purpose is to help users with technical topics such as:
 - Programming
 - Software
 - Internet
-- Troubleshooting
-- Technology
 - Windows
 - Android
-- Websites
-- Servers
-- APIs
+- Website
+- Server
+- API
+- Troubleshooting
+- Technology
 
-Give practical and easy-to-understand answers.
+Give practical, clear and easy-to-understand answers.
 
-If a technical question is unclear, ask the user for the missing information.
+When useful, give step-by-step instructions.
 
 ==================================================
-IMPORTANT RULES
+FACT RULE
 ==================================================
 
-1. Never invent personal information.
-2. Never make up information about Nishchal Nepal or Aishan Karki.
-3. When asked who created you, always say:
-   "मलाई निश्चल नेपालले coding गरेर बनाउनुभएको हो।"
-4. Follow the user's language.
-5. Be friendly and helpful.
-6. For technical questions, give step-by-step solutions when useful.
+Never invent personal information.
+
+For Nishchal Nepal and Aishan Karki, use only the information explicitly provided above.
+
+Do not use assumptions or make up facts.
+
+If you don't know something, say:
+
+"मसँग त्यसबारे जानकारी छैन।"
 `;
 
 // ==========================================
-// GEMINI MODEL
+// GET GEMINI MODEL
 // ==========================================
+
 function getAIModel() {
     return genAI.getGenerativeModel({
         model: "gemini-3.1-flash-lite",
@@ -161,16 +216,147 @@ function getAIModel() {
 }
 
 // ==========================================
-// GEMINI RESPONSE FUNCTION
+// NORMALIZE TEXT
 // ==========================================
-async function getAIResponse(userMessage, history = []) {
+
+function normalizeText(text) {
+    return String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[?？!！.,।]/g, "");
+}
+
+// ==========================================
+// FIXED INFORMATION
+// ==========================================
+
+function getFixedReply(userMessage) {
+    const text = normalizeText(userMessage);
+
+    // --------------------------------------
+    // CREATOR QUESTIONS
+    // --------------------------------------
+
+    const creatorKeywords = [
+        "तिमीलाई कसले बनाएको",
+        "तिमीलाई कसले बनायो",
+        "तपाईंलाई कसले बनाएको",
+        "तपाईंलाई कसले बनायो",
+        "तपाईँलाई कसले बनाएको",
+        "तपाईँलाई कसले बनायो",
+        "who created you",
+        "who made you",
+        "who coded you",
+        "who is your creator"
+    ];
+
+    if (
+        creatorKeywords.some((keyword) =>
+            text.includes(keyword)
+        )
+    ) {
+        return "मलाई निश्चल नेपालले coding गरेर बनाउनुभएको हो।";
+    }
+
+    // --------------------------------------
+    // AISHAN KARKI
+    // --------------------------------------
+
+    const asksAboutAishan =
+        (
+            text.includes("aishan karki") ||
+            text.includes("aishan") ||
+            text.includes("आइसन कार्की") ||
+            text.includes("आइसन")
+        ) &&
+        (
+            text.includes("को हो") ||
+            text.includes("को हुन") ||
+            text.includes("को हुन्") ||
+            text.includes("को होन") ||
+            text.includes("बारेमा") ||
+            text.includes("को बारे") ||
+            text.includes("who") ||
+            text.includes("about")
+        );
+
+    if (asksAboutAishan) {
+        return `Aishan Karki निश्चल नेपालको साथी हुनुहुन्छ।
+
+उहाँ कक्षा १२ मा पढ्दै हुनुहुन्छ।
+
+उहाँ १५ वर्षको हुनुहुन्छ।
+
+उहाँको favorite game Free Fire हो र उहाँ Free Fire मा एकदमै talented हुनुहुन्छ।
+
+उहाँको favorite football player Cristiano Ronaldo हो।
+
+उहाँको घर फलेलुङ–२, जोडपाटी हो।
+
+उहाँ पढाइमा पनि एकदमै talented हुनुहुन्छ।`;
+    }
+
+    // --------------------------------------
+    // NISCHAL NEPAL
+    // --------------------------------------
+
+    const asksAboutNischal =
+        (
+            text.includes("nishchal nepal") ||
+            text.includes("निश्चल नेपाल")
+        ) &&
+        (
+            text.includes("को हो") ||
+            text.includes("को हुन") ||
+            text.includes("को हुन्") ||
+            text.includes("बारेमा") ||
+            text.includes("को बारे") ||
+            text.includes("who") ||
+            text.includes("about")
+        );
+
+    if (asksAboutNischal) {
+        return `निश्चल नेपाल Nishchal AI लाई coding गरेर बनाउने व्यक्ति हुनुहुन्छ।
+
+उहाँका बाबाको नाम गङ्गाप्रसाद नेपाल हो।
+
+उहाँकी आमाको नाम कमला नेपाल हो।
+
+उहाँकी दिदीको नाम सुस्मिता नेपाल हो।
+
+उहाँकी अर्को दिदीको नाम अनशिका नेपाल हो।
+
+उहाँका बाबा शिक्षक तथा प्रधानाध्यापक हुनुहुन्छ।`;
+    }
+
+    return null;
+}
+
+// ==========================================
+// GET AI RESPONSE
+// ==========================================
+
+async function getAIResponse(
+    userMessage,
+    history = []
+) {
+    // First check fixed information
+    const fixedReply =
+        getFixedReply(userMessage);
+
+    if (fixedReply) {
+        return fixedReply;
+    }
+
+    // Otherwise use Gemini
     const model = getAIModel();
 
     const chat = model.startChat({
         history: history
     });
 
-    const result = await chat.sendMessage(userMessage);
+    const result =
+        await chat.sendMessage(userMessage);
 
     return result.response.text();
 }
@@ -178,11 +364,18 @@ async function getAIResponse(userMessage, history = []) {
 // ==========================================
 // FRONTEND CHAT API
 // ==========================================
-app.post("/api/chat", async (req, res) => {
-    try {
-        const userMessages = req.body.messages;
 
-        if (!userMessages || !Array.isArray(userMessages)) {
+app.post("/api/chat", async (req, res) => {
+
+    try {
+
+        const userMessages =
+            req.body.messages;
+
+        if (
+            !userMessages ||
+            !Array.isArray(userMessages)
+        ) {
             return res.status(400).json({
                 error: "Invalid messages format."
             });
@@ -195,51 +388,63 @@ app.post("/api/chat", async (req, res) => {
         }
 
         const lastMessage =
-            userMessages[userMessages.length - 1].content;
+            userMessages[
+                userMessages.length - 1
+            ].content;
 
-        const history = userMessages
-            .slice(0, -1)
-            .map((msg) => ({
-                role:
-                    msg.role === "ai" || msg.role === "model"
-                        ? "model"
-                        : "user",
-                parts: [
-                    {
-                        text: msg.content
-                    }
-                ]
-            }));
+        const history =
+            userMessages
+                .slice(0, -1)
+                .map((msg) => ({
+                    role:
+                        msg.role === "ai" ||
+                        msg.role === "model"
+                            ? "model"
+                            : "user",
 
-        const responseText = await getAIResponse(
-            lastMessage,
-            history
-        );
+                    parts: [
+                        {
+                            text: msg.content
+                        }
+                    ]
+                }));
 
-        res.json({
+        const responseText =
+            await getAIResponse(
+                lastMessage,
+                history
+            );
+
+        return res.json({
             answer: responseText
         });
 
     } catch (error) {
+
         console.error(
             "Frontend Gemini Error:",
-            error?.response?.data || error?.message || error
+            error?.response?.data ||
+            error?.message ||
+            error
         );
 
-        // Gemini quota / rate limit
         if (
             error?.status === 429 ||
             error?.message?.includes("429") ||
-            error?.message?.toLowerCase()?.includes("quota")
+            error?.message
+                ?.toLowerCase()
+                ?.includes("quota")
         ) {
+
             return res.status(429).json({
                 error:
-                    "अहिले AI को free-tier limit पुगेको छ। केही समयपछि फेरि प्रयास गर्नुहोस्।"
+                    "अहिले Nishchal AI को free-tier limit पुगेको छ। केही समयपछि फेरि प्रयास गर्नुहोस्।"
             });
         }
 
-        res.status(500).json({
-            error: "Something went wrong."
+        return res.status(500).json({
+            error:
+                "Something went wrong."
         });
     }
 });
@@ -247,149 +452,174 @@ app.post("/api/chat", async (req, res) => {
 // ==========================================
 // FACEBOOK WEBHOOK VERIFICATION
 // ==========================================
-app.get("/webhook", (req, res) => {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
 
-    if (mode && token) {
-        if (
-            mode === "subscribe" &&
-            token === VERIFY_TOKEN
-        ) {
-            console.log("WEBHOOK_VERIFIED");
+app.get(
+    "/webhook",
+    (req, res) => {
 
-            return res
-                .status(200)
-                .send(challenge);
+        const mode =
+            req.query["hub.mode"];
+
+        const token =
+            req.query["hub.verify_token"];
+
+        const challenge =
+            req.query["hub.challenge"];
+
+        if (mode && token) {
+
+            if (
+                mode === "subscribe" &&
+                token === VERIFY_TOKEN
+            ) {
+
+                console.log(
+                    "WEBHOOK_VERIFIED"
+                );
+
+                return res
+                    .status(200)
+                    .send(challenge);
+            }
+
+            return res.sendStatus(403);
         }
 
-        return res.sendStatus(403);
+        return res.sendStatus(400);
     }
-
-    return res.sendStatus(400);
-});
+);
 
 // ==========================================
 // FACEBOOK MESSENGER WEBHOOK
 // ==========================================
-app.post("/webhook", async (req, res) => {
-    const body = req.body;
 
-    if (body.object !== "page") {
-        return res.sendStatus(404);
-    }
+app.post(
+    "/webhook",
+    async (req, res) => {
 
-    try {
-        for (const entry of body.entry || []) {
+        const body = req.body;
 
-            for (const webhookEvent of entry.messaging || []) {
+        if (body.object !== "page") {
+            return res.sendStatus(404);
+        }
 
-                // Sender
-                const sender_psid =
-                    webhookEvent.sender?.id;
+        try {
 
-                if (!sender_psid) {
-                    continue;
-                }
+            for (
+                const entry of body.entry || []
+            ) {
 
-                // Ignore messages without text
-                if (
-                    !webhookEvent.message ||
-                    !webhookEvent.message.text
+                for (
+                    const webhookEvent
+                    of entry.messaging || []
                 ) {
-                    continue;
-                }
 
-                const userMessage =
-                    webhookEvent.message.text;
+                    const sender_psid =
+                        webhookEvent
+                            .sender?.id;
 
-                console.log(
-                    "Facebook User:",
-                    userMessage
-                );
+                    if (!sender_psid) {
+                        continue;
+                    }
 
-                try {
-                    // Ask Nishchal AI
-                    const aiReply = await getAIResponse(
+                    if (
+                        !webhookEvent.message ||
+                        !webhookEvent.message.text
+                    ) {
+                        continue;
+                    }
+
+                    const userMessage =
+                        webhookEvent
+                            .message
+                            .text;
+
+                    console.log(
+                        "Facebook User:",
                         userMessage
                     );
 
-                    console.log(
-                        "Nishchal AI:",
-                        aiReply
-                    );
+                    try {
 
-                    // Send answer to Facebook
-                    await sendMessengerMessage(
-                        sender_psid,
-                        aiReply
-                    );
+                        const aiReply =
+                            await getAIResponse(
+                                userMessage
+                            );
 
-                } catch (err) {
-
-                    console.error(
-                        "Messenger AI Error:",
-                        err?.response?.data ||
-                        err?.message ||
-                        err
-                    );
-
-                    // Quota error
-                    if (
-                        err?.status === 429 ||
-                        err?.message?.includes("429") ||
-                        err?.message
-                            ?.toLowerCase()
-                            ?.includes("quota")
-                    ) {
+                        console.log(
+                            "Nishchal AI:",
+                            aiReply
+                        );
 
                         await sendMessengerMessage(
                             sender_psid,
-                            "माफ गर्नुहोला 🙏 अहिले Nishchal AI को free-tier limit पुगेको छ। केही समयपछि फेरि message गर्नुहोस्।"
+                            aiReply
                         );
 
-                    } else {
+                    } catch (err) {
 
-                        await sendMessengerMessage(
-                            sender_psid,
-                            "माफ गर्नुहोला 🙏 अहिले AI response दिन समस्या भयो। केही समयपछि फेरि प्रयास गर्नुहोस्।"
+                        console.error(
+                            "Messenger AI Error:",
+                            err?.response?.data ||
+                            err?.message ||
+                            err
                         );
+
+                        if (
+                            err?.status === 429 ||
+                            err?.message?.includes("429") ||
+                            err?.message
+                                ?.toLowerCase()
+                                ?.includes("quota")
+                        ) {
+
+                            await sendMessengerMessage(
+                                sender_psid,
+                                "माफ गर्नुहोला 🙏 अहिले Nishchal AI को free-tier limit पुगेको छ। केही समयपछि फेरि प्रयास गर्नुहोस्।"
+                            );
+
+                        } else {
+
+                            await sendMessengerMessage(
+                                sender_psid,
+                                "माफ गर्नुहोला 🙏 अहिले AI response दिन समस्या भयो। केही समयपछि फेरि प्रयास गर्नुहोस्।"
+                            );
+                        }
                     }
                 }
             }
+
+            return res
+                .status(200)
+                .send("EVENT_RECEIVED");
+
+        } catch (error) {
+
+            console.error(
+                "Webhook Error:",
+                error?.response?.data ||
+                error?.message ||
+                error
+            );
+
+            return res
+                .status(200)
+                .send("EVENT_RECEIVED");
         }
-
-        // Facebook expects this quickly
-        return res
-            .status(200)
-            .send("EVENT_RECEIVED");
-
-    } catch (error) {
-
-        console.error(
-            "Webhook Error:",
-            error?.response?.data ||
-            error?.message ||
-            error
-        );
-
-        // Still return 200 so Facebook doesn't repeatedly resend
-        return res
-            .status(200)
-            .send("EVENT_RECEIVED");
     }
-});
+);
 
 // ==========================================
-// SEND MESSAGE TO FACEBOOK MESSENGER
+// SEND MESSAGE TO FACEBOOK
 // ==========================================
+
 async function sendMessengerMessage(
     sender_psid,
     response_text
 ) {
 
     const request_body = {
+
         recipient: {
             id: sender_psid
         },
@@ -422,15 +652,20 @@ async function sendMessengerMessage(
 }
 
 // ==========================================
-// HEALTH CHECK
+// HOME / HEALTH CHECK
 // ==========================================
+
 app.get("/", (req, res) => {
-    res.send("Nishchal AI is running successfully! 🤖");
+
+    res.send(
+        "Nishchal AI is running successfully! 🤖"
+    );
 });
 
 // ==========================================
-// SERVER
+// SERVER START
 // ==========================================
+
 app.listen(
     PORT,
     "0.0.0.0",
@@ -441,7 +676,7 @@ app.listen(
         );
 
         console.log(
-            "     NISCHAL AI SERVER"
+            "       NISCHAL AI SERVER"
         );
 
         console.log(
@@ -453,7 +688,7 @@ app.listen(
         );
 
         console.log(
-            "Facebook Messenger Webhook: /webhook"
+            "Facebook Webhook: /webhook"
         );
     }
 );
