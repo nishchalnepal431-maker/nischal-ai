@@ -618,27 +618,52 @@ async function sendMessengerMessage(
     response_text
 ) {
 
-    const request_body = {
+    // Facebook Messenger maximum message length
+    // is 2000 characters.
+    // We keep each message safely below that limit.
+    const maxLength = 1900;
 
-        recipient: {
-            id: sender_psid
-        },
+    const messages = [];
 
-        message: {
-            text: response_text
-        }
-    };
+    for (
+        let i = 0;
+        i < response_text.length;
+        i += maxLength
+    ) {
+        messages.push(
+            response_text.substring(
+                i,
+                i + maxLength
+            )
+        );
+    }
 
     try {
 
-        await axios.post(
-            `https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
-            request_body
-        );
+        for (
+            const messageText of messages
+        ) {
 
-        console.log(
-            "Messenger message sent successfully!"
-        );
+            const request_body = {
+
+                recipient: {
+                    id: sender_psid
+                },
+
+                message: {
+                    text: messageText
+                }
+            };
+
+            await axios.post(
+                `https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+                request_body
+            );
+
+            console.log(
+                "Messenger message sent successfully!"
+            );
+        }
 
     } catch (error) {
 
