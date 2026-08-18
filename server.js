@@ -15,21 +15,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ==========================================
-// INITIALIZE GEMINI (Gemini 1.5 Flash - Best for Multimodal/Audio/Vision)
+// INITIALIZE GEMINI
 // ==========================================
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ==========================================
 // MIDDLEWARE
 // ==========================================
-app.use(bodyParser.json({ limit: "15mb" })); // अडियो र इमेज फाइलको लागि बढाएको
+app.use(bodyParser.json({ limit: "15mb" }));
 app.use(express.static(__dirname));
 
 const VERIFY_TOKEN = "nischal_bot_verify_token_2026";
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
 // ==========================================
-// CHAT SESSIONS STORAGE (For Messenger Memory)
+// AI ON / OFF CONTROL
+// Render Environment Variable:
+// AI_ENABLED=true  → AI ON
+// AI_ENABLED=false → AI OFF
+// ==========================================
+const AI_ENABLED = process.env.AI_ENABLED !== "false";
+
+// ==========================================
+// CHAT SESSIONS STORAGE
 // ==========================================
 const messengerSessions = new Map();
 
@@ -92,6 +100,7 @@ Aishan Karki निश्चल नेपालको साथी हुनु�
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
+
 function getAIModel() {
     return genAI.getGenerativeModel({
         model: "gemini-3.5-flash-lite",
@@ -99,129 +108,375 @@ function getAIModel() {
     });
 }
 
-// लाइभ मौसम जानकारी
+// ==========================================
+// LIVE WEATHER
+// ==========================================
+
 async function getLiveWeather(city) {
     try {
-        const response = await axios.get(`https://wttr.in/${encodeURIComponent(city)}?format=3`, { timeout: 5000 });
-        return response.status === 200 ? `हालको मौसम (${city}): ${response.data.trim()}` : null;
-    } catch (e) { return null; }
+        const response = await axios.get(
+            `https://wttr.in/${encodeURIComponent(city)}?format=3`,
+            { timeout: 5000 }
+        );
+
+        return response.status === 200
+            ? `हालको मौसम (${city}): ${response.data.trim()}`
+            : null;
+
+    } catch (e) {
+        console.error("Weather Error:", e.message);
+        return null;
+    }
 }
 
-// फ्री वेब सर्च (DuckDuckGo API)
+// ==========================================
+// FREE WEB SEARCH
+// ==========================================
+
 async function searchWeb(query) {
     try {
-        const response = await axios.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`, { timeout: 5000 });
+        const response = await axios.get(
+            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`,
+            { timeout: 5000 }
+        );
+
         if (response.data && response.data.AbstractText) {
             return response.data.AbstractText;
-        } else if (response.data && response.data.RelatedTopics && response.data.RelatedTopics.length > 0) {
+        }
+
+        if (
+            response.data &&
+            response.data.RelatedTopics &&
+            response.data.RelatedTopics.length > 0
+        ) {
             return response.data.RelatedTopics[0].Text || null;
         }
+
     } catch (e) {
         console.error("Web Search Error:", e.message);
     }
+
     return null;
 }
 
-// URL बाट अडियो वा इमेज फाइल डाउनलोड गरेर जेमिनीमा पठाउन मिल्ने buffer ढाँचामा बदल्ने
+// ==========================================
+// URL → GEMINI FILE
+// ==========================================
+
 async function urlToGenerativePart(url, mimeType) {
-    const response = await axios.get(url, { responseType: "arraybuffer" });
+    const response = await axios.get(url, {
+        responseType: "arraybuffer"
+    });
+
     return {
         inlineData: {
             data: Buffer.from(response.data).toString("base64"),
             mimeType
-        },
+        }
     };
 }
 
 // ==========================================
-// MESSENGER WEBHOOK (Full Logic: Memory + Vision + Weather + Voice + Search)
+// FACEBOOK MESSENGER WEBHOOK
 // ==========================================
+
 app.post("/webhook", async (req, res) => {
+
     const body = req.body;
-    if (body.object !== "page") return res.sendStatus(404);
+
+    if (body.object !== "page") {
+        return res.sendStatus(404);
+    }
+
+    // ==========================================
+    // AI OFF CHECK
+    // ==========================================
+
+    if (!AI_ENABLED) {
+
+        console.log("🔴 Nischal AI is OFF - message ignored");
+
+        return res.status(200).send("AI_DISABLED");
+    }
+
+    // ==========================================
+    // PROCESS MESSAGES
+    // ==========================================
 
     for (const entry of body.entry || []) {
+
         for (const webhookEvent of entry.messaging || []) {
+
             const sender_psid = webhookEvent.sender.id;
-            
+
             try {
-                // १. अट्याचमेन्ट ह्यान्डलिङ (फोटो वा भ्वाइस मेसेज)
+
+                // ==========================================
+                // ATTACHMENT HANDLING
+                // ==========================================
+
                 if (webhookEvent.message?.attachments) {
-                    const attachment = webhookEvent.message.attachments[0];
-                    const mediaUrl = attachment.payload.url;
-                    
+
+                    const attachment =
+                        webhookEvent.message.attachments[0];
+
+                    const mediaUrl =
+                        attachment.payload.url;
+
+                    // ==========================================
+                    // IMAGE
+                    // ==========================================
+
                     if (attachment.type === "image") {
-                        // फोटो प्रशोधन गर्ने
-                        const imagePart = await urlToGenerativePart(mediaUrl, "image/jpeg");
+
+                        const imagePart =
+                            await urlToGenerativePart(
+                                mediaUrl,
+                                "image/jpeg"
+                            );
+
                         const model = getAIModel();
-                        const result = await model.generateContent([imagePart, "यो फोटोमा के छ वा यसले के देखाउँछ? प्रष्टसँग उत्तर दिनुहोस्।"]);
-                        await sendMessengerMessage(sender_psid, result.response.text());
-                    } 
+
+                        const result =
+                            await model.generateContent([
+                                imagePart,
+                                "यो फोटोमा के छ वा यसले के देखाउँछ? प्रष्टसँग उत्तर दिनुहोस्।"
+                            ]);
+
+                        await sendMessengerMessage(
+                            sender_psid,
+                            result.response.text()
+                        );
+                    }
+
+                    // ==========================================
+                    // AUDIO
+                    // ==========================================
+
                     else if (attachment.type === "audio") {
-                        // भ्वाइस मेसेज (अडियो) प्रशोधन गर्ने
-                        const audioPart = await urlToGenerativePart(mediaUrl, "audio/mp4");
+
+                        const audioPart =
+                            await urlToGenerativePart(
+                                mediaUrl,
+                                "audio/mp4"
+                            );
+
                         const model = getAIModel();
-                        const result = await model.generateContent([audioPart, "यो भ्वाइस मेसेजमा के भनिएको छ? त्यसको उत्तर दिनुहोस्।"]);
-                        await sendMessengerMessage(sender_psid, result.response.text());
-                    }
-                } 
-                // २. टेक्स्ट मेसेज ह्यान्डलिङ
-                else if (webhookEvent.message?.text) {
-                    const userMessage = webhookEvent.message.text;
-                    const lowerMsg = userMessage.toLowerCase();
-                    
-                    // मौसम चेक गर्ने
-                    if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
-                        let city = "Kathmandu";
-                        if (lowerMsg.includes("इलाम")) city = "Ilam";
-                        else if (lowerMsg.includes("पोखरा")) city = "Pokhara";
-                        else if (lowerMsg.includes("विराटनगर")) city = "Biratnagar";
-                        
-                        const weather = await getLiveWeather(city);
-                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन।");
-                    } 
-                    // वेब सर्च चेक गर्ने
-                    else if (lowerMsg.includes("search") || lowerMsg.includes("खोज") || lowerMsg.includes("news")) {
-                        const searchResult = await searchWeb(userMessage);
-                        if (searchResult) {
-                            await sendMessengerMessage(sender_psid, `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}`);
-                        } else {
-                            if (!messengerSessions.has(sender_psid)) {
-                                messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
-                            }
-                            const chat = messengerSessions.get(sender_psid);
-                            const result = await chat.sendMessage(userMessage);
-                            await sendMessengerMessage(sender_psid, result.response.text());
-                        }
-                    }
-                    // साधारण च्याट (मेमरी सहित)
-                    else {
-                        if (!messengerSessions.has(sender_psid)) {
-                            messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
-                        }
-                        const chat = messengerSessions.get(sender_psid);
-                        const result = await chat.sendMessage(userMessage);
-                        await sendMessengerMessage(sender_psid, result.response.text());
+
+                        const result =
+                            await model.generateContent([
+                                audioPart,
+                                "यो भ्वाइस मेसेजमा के भनिएको छ? त्यसको उत्तर दिनुहोस्।"
+                            ]);
+
+                        await sendMessengerMessage(
+                            sender_psid,
+                            result.response.text()
+                        );
                     }
                 }
+
+                // ==========================================
+                // TEXT MESSAGE
+                // ==========================================
+
+                else if (webhookEvent.message?.text) {
+
+                    const userMessage =
+                        webhookEvent.message.text;
+
+                    const lowerMsg =
+                        userMessage.toLowerCase();
+
+                    // ==========================================
+                    // WEATHER
+                    // ==========================================
+
+                    if (
+                        lowerMsg.includes("मौसम") ||
+                        lowerMsg.includes("weather")
+                    ) {
+
+                        let city = "Kathmandu";
+
+                        if (lowerMsg.includes("इलाम")) {
+                            city = "Ilam";
+                        }
+
+                        else if (lowerMsg.includes("पोखरा")) {
+                            city = "Pokhara";
+                        }
+
+                        else if (lowerMsg.includes("विराटनगर")) {
+                            city = "Biratnagar";
+                        }
+
+                        const weather =
+                            await getLiveWeather(city);
+
+                        await sendMessengerMessage(
+                            sender_psid,
+                            weather ||
+                            "अहिले मौसम जानकारी उपलब्ध छैन।"
+                        );
+                    }
+
+                    // ==========================================
+                    // WEB SEARCH
+                    // ==========================================
+
+                    else if (
+                        lowerMsg.includes("search") ||
+                        lowerMsg.includes("खोज") ||
+                        lowerMsg.includes("news")
+                    ) {
+
+                        const searchResult =
+                            await searchWeb(userMessage);
+
+                        if (searchResult) {
+
+                            await sendMessengerMessage(
+                                sender_psid,
+                                `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}`
+                            );
+
+                        } else {
+
+                            if (!messengerSessions.has(sender_psid)) {
+
+                                messengerSessions.set(
+                                    sender_psid,
+                                    getAIModel().startChat({
+                                        history: []
+                                    })
+                                );
+                            }
+
+                            const chat =
+                                messengerSessions.get(sender_psid);
+
+                            const result =
+                                await chat.sendMessage(userMessage);
+
+                            await sendMessengerMessage(
+                                sender_psid,
+                                result.response.text()
+                            );
+                        }
+                    }
+
+                    // ==========================================
+                    // NORMAL AI CHAT
+                    // ==========================================
+
+                    else {
+
+                        if (!messengerSessions.has(sender_psid)) {
+
+                            messengerSessions.set(
+                                sender_psid,
+                                getAIModel().startChat({
+                                    history: []
+                                })
+                            );
+                        }
+
+                        const chat =
+                            messengerSessions.get(sender_psid);
+
+                        const result =
+                            await chat.sendMessage(userMessage);
+
+                        await sendMessengerMessage(
+                            sender_psid,
+                            result.response.text()
+                        );
+                    }
+                }
+
             } catch (err) {
-                console.error("Processing Error:", err?.message || err);
-                await sendMessengerMessage(sender_psid, "माफ गर्नुहोला 🙏 यो मेसेज प्रोसेस गर्नमा केही समस्या आयो। फेरि प्रयास गर्नुहोस्।");
+
+                console.error(
+                    "Processing Error:",
+                    err?.message || err
+                );
+
+                await sendMessengerMessage(
+                    sender_psid,
+                    "माफ गर्नुहोला 🙏 यो मेसेज प्रोसेस गर्नमा केही समस्या आयो। फेरि प्रयास गर्नुहोस्।"
+                );
             }
         }
     }
+
     res.status(200).send("EVENT_RECEIVED");
 });
 
-async function sendMessengerMessage(sender_psid, response_text) {
+// ==========================================
+// SEND MESSAGE TO FACEBOOK
+// ==========================================
+
+async function sendMessengerMessage(
+    sender_psid,
+    response_text
+) {
+
     try {
-        await axios.post(`https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
-            recipient: { id: sender_psid },
-            message: { text: response_text }
-        });
-    } catch (error) { console.error("Error sending message:", error?.response?.data || error.message); }
+
+        await axios.post(
+            `https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+            {
+                recipient: {
+                    id: sender_psid
+                },
+
+                message: {
+                    text: response_text
+                }
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Error sending message:",
+            error?.response?.data ||
+            error.message
+        );
+    }
 }
 
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Nischal AI Server (with Full Memory, Vision, Weather, Search & Voice) is running on port ${PORT}`);
+// ==========================================
+// SERVER STATUS
+// ==========================================
+
+app.get("/", (req, res) => {
+
+    res.send(
+        AI_ENABLED
+            ? "🟢 Nischal AI is ONLINE"
+            : "🔴 Nischal AI is OFF"
+    );
 });
+
+// ==========================================
+// START SERVER
+// ==========================================
+
+app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+
+        console.log(
+            `Nischal AI Server is running on port ${PORT}`
+        );
+
+        console.log(
+            AI_ENABLED
+                ? "🟢 AI STATUS: ON"
+                : "🔴 AI STATUS: OFF"
+        );
+    }
+);
