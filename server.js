@@ -161,7 +161,7 @@ If you don't know something, say:
 // ==========================================
 function getAIModel() {
 return genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.6-flash",
     systemInstruction: AI_INSTRUCTIONS
 });
 }
