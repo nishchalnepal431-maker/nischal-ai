@@ -157,7 +157,7 @@ If you don't know something, say:
 `;
 
 // ==========================================
-// GET GEMINI MODEL (Updated model name)
+// GET GEMINI MODEL
 // ==========================================
 function getAIModel() {
 return genAI.getGenerativeModel({
