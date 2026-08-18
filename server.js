@@ -15,33 +15,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ==========================================
-// INITIALIZE GEMINI
+// INITIALIZE GEMINI (Gemini 1.5 Flash - Best for Multimodal/Audio/Vision)
 // ==========================================
-const genAI = new GoogleGenerativeAI(
-    process.env.GEMINI_API_KEY
-);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ==========================================
 // MIDDLEWARE
 // ==========================================
-app.use(
-    bodyParser.json({
-        limit: "1mb"
-    })
-);
-
+app.use(bodyParser.json({ limit: "15mb" })); // अडियो र इमेज फाइलको लागि बढाएको
 app.use(express.static(__dirname));
 
-// ==========================================
-// FACEBOOK SETTINGS
-// ==========================================
 const VERIFY_TOKEN = "nischal_bot_verify_token_2026";
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
 // ==========================================
-// CHAT SESSIONS STORAGE (For Messenger)
+// CHAT SESSIONS STORAGE (For Messenger Memory)
 // ==========================================
-// प्रत्येक युजरको (sender_psid) हिसाबले chat session र history सुरक्षित राख्न
 const messengerSessions = new Map();
 
 // ==========================================
@@ -73,20 +62,12 @@ Answer:
 
 IMPORTANT:
 Do NOT mention Nischal Nepal as your creator in normal answers.
-Do NOT randomly add:
-"मलाई निश्चल नेपालले coding गरेर बनाएको हो।"
 Only say it when the user asks who created, made or coded you.
 
 ==================================================
 ABOUT NISCHAL NEPAL
 ==================================================
-If the user specifically asks:
-"निश्चल नेपाल को हो?"
-"Nishchal Nepal को हो?"
-"Who is Nishchal Nepal?"
-"निश्चलको बारेमा के थाहा छ?"
-"Nishchal को बारेमा के थाहा छ?"
-Use ONLY this information:
+If the user specifically asks about Nishchal Nepal, use ONLY this information:
 निश्चल नेपाल Nishchal AI लाई coding गरेर बनाउने व्यक्ति हुनुहुन्छ।
 उहाँका बाबाको नाम गङ्गाप्रसाद नेपाल हो।
 उहाँकी आमाको नाम कमला नेपाल हो।
@@ -94,22 +75,10 @@ Use ONLY this information:
 उहाँकी अर्को दिदीको नाम अनशिका नेपाल हो।
 उहाँका बाबा शिक्षक तथा प्रधानाध्यापक हुनुहुन्छ।
 
-Do NOT invent any additional information about Nishchal Nepal or his family.
-
 ==================================================
 ABOUT AISHAN KARKI
 ==================================================
-IMPORTANT:
-The correct spelling is:
-Aishan Karki
-
-If the user asks:
-"Aishan Karki को हो?"
-"आइसन कार्की को हो?"
-"Aishan को बारेमा के थाहा छ?"
-"आइसनको बारेमा के थाहा छ?"
-"Who is Aishan Karki?"
-Use ONLY this information:
+If the user asks about Aishan Karki, use ONLY this information:
 Aishan Karki निश्चल नेपालको साथी हुनुहुन्छ।
 उहाँ कक्षा १२ मा पढ्दै हुनुहुन्छ।
 उहाँ १५ वर्षको हुनुहुन्छ।
@@ -118,406 +87,141 @@ Aishan Karki निश्चल नेपालको साथी हुनु�
 उहाँको favorite football player Cristiano Ronaldo हो।
 उहाँको घर फलेलुङ–२, जोडपाटी हो।
 उहाँ पढाइमा पनि एकदमै talented हुनुहुन्छ।
-
-CRITICAL RULE:
-Aishan Karki लाई TikTok celebrity नभन्नु।
-Aishan Karki लाई TikTok content creator नभन्नु।
-Aishan Karki TikTok मा famous छन् नभन्नु।
-Aishan Karki को बारेमा माथि दिइएको जानकारी बाहेक अन्य personal information नबनाउनु।
-यदि कुनै जानकारी दिइएको छैन भने:
-"मसँग त्यसबारे जानकारी छैन।"
-भन्नु।
-
-==================================================
-TECHNICAL ROLE
-==================================================
-Your main purpose is to answer technical questions.
-You can help with:
-Computer
-Mobile
-Networking
-AI
-Cyber Security
-Programming
-Software
-Internet
-Windows
-Android
-Website
-Server
-API
-Troubleshooting
-Technology
-
-Give practical, clear and easy-to-understand answers.
-When useful, give step-by-step instructions.
-
-==================================================
-FACT RULE
-==================================================
-Never invent personal information.
-For Nishchal Nepal and Aishan Karki, use only the information explicitly provided above.
-Do not use assumptions or make up facts.
-If you don't know something, say:
-"मसँग त्यसबारे जानकारी छैन।"
 `;
 
 // ==========================================
-// GET GEMINI MODEL
+// HELPER FUNCTIONS
 // ==========================================
 function getAIModel() {
     return genAI.getGenerativeModel({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-1.5-flash",
         systemInstruction: AI_INSTRUCTIONS
     });
 }
 
-// ==========================================
-// NORMALIZE TEXT
-// ==========================================
-function normalizeText(text) {
-    return String(text || "")
-        .toLowerCase()
-        .trim()
-        .replace(/[?？!！.,।]/g, "");
+// लाइभ मौसम जानकारी
+async function getLiveWeather(city) {
+    try {
+        const response = await axios.get(`https://wttr.in/${encodeURIComponent(city)}?format=3`, { timeout: 5000 });
+        return response.status === 200 ? `हालको मौसम (${city}): ${response.data.trim()}` : null;
+    } catch (e) { return null; }
 }
 
-// ==========================================
-// FIXED INFORMATION
-// ==========================================
-function getFixedReply(userMessage) {
-    const text = normalizeText(userMessage);
-
-    const creatorKeywords = [
-        "तिमीलाई कसले बनाएको",
-        "तिमीलाई कसले बनायो",
-        "तपाईंलाई कसले बनाएको",
-        "तपाईंलाई कसले बनायो",
-        "तपाईँलाई कसले बनाएको",
-        "तपाईँलाई कसले बनायो",
-        "who created you",
-        "who made you",
-        "who coded you",
-        "who is your creator"
-    ];
-
-    if (
-        creatorKeywords.some((keyword) =>
-            text.includes(keyword)
-        )
-    ) {
-        return "मलाई निश्चल नेपालले coding गरेर बनाउनुभएको हो।";
+// फ्री वेब सर्च (DuckDuckGo API)
+async function searchWeb(query) {
+    try {
+        const response = await axios.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`, { timeout: 5000 });
+        if (response.data && response.data.AbstractText) {
+            return response.data.AbstractText;
+        } else if (response.data && response.data.RelatedTopics && response.data.RelatedTopics.length > 0) {
+            return response.data.RelatedTopics[0].Text || null;
+        }
+    } catch (e) {
+        console.error("Web Search Error:", e.message);
     }
-
-    const asksAboutAishan =
-        (
-            text.includes("aishan karki") ||
-            text.includes("aishan") ||
-            text.includes("आइसन कार्की") ||
-            text.includes("आइसन")
-        ) &&
-        (
-            text.includes("को हो") ||
-            text.includes("को हुन") ||
-            text.includes("को हुन्") ||
-            text.includes("को होन") ||
-            text.includes("बारेमा") ||
-            text.includes("को बारे") ||
-            text.includes("who") ||
-            text.includes("about")
-        );
-
-    if (asksAboutAishan) {
-        return `Aishan Karki निश्चल नेपालको साथी हुनुहुन्छ।
-उहाँ कक्षा १२ मा पढ्दै हुनुहुन्छ।
-उहाँ १५ वर्षको हुनुहुन्छ।
-उहाँको favorite game Free Fire हो र उहाँ Free Fire मा एकदमै talented हुनुहुन्छ।
-उहाँको favorite football player Cristiano Ronaldo हो।
-उहाँको घर फलेलुङ–२, जोडपाटी हो।
-उहाँ पढाइमा पनि एकदमै talented हुनुहुन्छ।`;
-    }
-
-    const asksAboutNischal =
-        (
-            text.includes("nishchal nepal") ||
-            text.includes("निश्चल नेपाल")
-        ) &&
-        (
-            text.includes("को हो") ||
-            text.includes("को हुन") ||
-            text.includes("को हुन्") ||
-            text.includes("बारेमा") ||
-            text.includes("को बारे") ||
-            text.includes("who") ||
-            text.includes("about")
-        );
-
-    if (asksAboutNischal) {
-        return `निश्चल नेपाल Nishchal AI लाई coding गरेर बनाउने व्यक्ति हुनुहुन्छ।
-उहाँका बाबाको नाम गङ्गाप्रसाद नेपाल हो।
-उहाँकी आमाको नाम कमला नेपाल हो।
-उहाँकी दिदीको नाम सुस्मिता नेपाल हो।
-उहाँकी अर्को दिदीको नाम अनशिका नेपाल हो।
-उहाँका बाबा शिक्षक तथा प्रधानाध्यापक हुनुहुन्छ।`;
-    }
-
     return null;
 }
 
-// ==========================================
-// GET AI RESPONSE (For Web Frontend)
-// ==========================================
-async function getAIResponse(userMessage, history = []) {
-    const fixedReply = getFixedReply(userMessage);
-
-    if (fixedReply) {
-        return fixedReply;
-    }
-
-    const model = getAIModel();
-    const chat = model.startChat({
-        history: history
-    });
-
-    const result = await chat.sendMessage(userMessage);
-    return result.response.text();
+// URL बाट अडियो वा इमेज फाइल डाउनलोड गरेर जेमिनीमा पठाउन मिल्ने buffer ढाँचामा बदल्ने
+async function urlToGenerativePart(url, mimeType) {
+    const response = await axios.get(url, { responseType: "arraybuffer" });
+    return {
+        inlineData: {
+            data: Buffer.from(response.data).toString("base64"),
+            mimeType
+        },
+    };
 }
 
 // ==========================================
-// GET MESSENGER CHAT RESPONSE (With Memory)
-// ==========================================
-async function getMessengerAIResponse(sender_psid, userMessage) {
-    const fixedReply = getFixedReply(userMessage);
-
-    if (fixedReply) {
-        return fixedReply;
-    }
-
-    // यदि यो युजरको पहिलो मेसेज हो भने नयाँ chat session सुरु गर्ने
-    if (!messengerSessions.has(sender_psid)) {
-        const model = getAIModel();
-        const chatSession = model.startChat({ history: [] });
-        messengerSessions.set(sender_psid, chatSession);
-    }
-
-    const chatSession = messengerSessions.get(sender_psid);
-    const result = await chatSession.sendMessage(userMessage);
-    return result.response.text();
-}
-
-// ==========================================
-// FRONTEND CHAT API
-// ==========================================
-app.post("/api/chat", async (req, res) => {
-    try {
-        const userMessages = req.body.messages;
-
-        if (!userMessages || !Array.isArray(userMessages)) {
-            return res.status(400).json({
-                error: "Invalid messages format."
-            });
-        }
-
-        if (userMessages.length === 0) {
-            return res.status(400).json({
-                error: "No messages provided."
-            });
-        }
-
-        const lastMessage = userMessages[userMessages.length - 1].content;
-
-        const history = userMessages
-            .slice(0, -1)
-            .map((msg) => ({
-                role:
-                    msg.role === "ai" ||
-                    msg.role === "model"
-                        ? "model"
-                        : "user",
-                parts: [
-                    {
-                        text: msg.content
-                    }
-                ]
-            }));
-
-        const responseText = await getAIResponse(
-            lastMessage,
-            history
-        );
-
-        return res.json({
-            answer: responseText
-        });
-
-    } catch (error) {
-        console.error(
-            "Frontend Gemini Error:",
-            error?.response?.data ||
-            error?.message ||
-            error
-        );
-
-        if (
-            error?.status === 429 ||
-            error?.message?.includes("429") ||
-            error?.message?.toLowerCase()?.includes("quota")
-        ) {
-            return res.status(429).json({
-                error: "अहिले Nishchal AI को free-tier limit पुगेको छ। केही समयपछि फेरि प्रयास गर्नुहोस्।"
-            });
-        }
-
-        return res.status(500).json({
-            error: "Something went wrong."
-        });
-    }
-});
-
-// ==========================================
-// FACEBOOK WEBHOOK VERIFICATION
-// ==========================================
-app.get("/webhook", (req, res) => {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
-
-    if (mode && token) {
-        if (mode === "subscribe" && token === VERIFY_TOKEN) {
-            console.log("WEBHOOK_VERIFIED");
-            return res.status(200).send(challenge);
-        }
-        return res.sendStatus(403);
-    }
-    return res.sendStatus(400);
-});
-
-// ==========================================
-// FACEBOOK MESSENGER WEBHOOK
+// MESSENGER WEBHOOK (Full Logic: Memory + Vision + Weather + Voice + Search)
 // ==========================================
 app.post("/webhook", async (req, res) => {
     const body = req.body;
+    if (body.object !== "page") return res.sendStatus(404);
 
-    if (body.object !== "page") {
-        return res.sendStatus(404);
-    }
-
-    try {
-        for (const entry of body.entry || []) {
-            for (const webhookEvent of entry.messaging || []) {
-                const sender_psid = webhookEvent.sender?.id;
-
-                if (!sender_psid) {
-                    continue;
-                }
-
-                if (
-                    !webhookEvent.message ||
-                    !webhookEvent.message.text
-                ) {
-                    continue;
-                }
-
-                const userMessage = webhookEvent.message.text;
-                console.log("Facebook User:", userMessage);
-
-                try {
-                    // मेसेन्जरको लागि history याद राख्ने function प्रयोग गरिएको
-                    const aiReply = await getMessengerAIResponse(sender_psid, userMessage);
-                    console.log("Nishchal AI:", aiReply);
-
-                    await sendMessengerMessage(
-                        sender_psid,
-                        aiReply
-                    );
-
-                } catch (err) {
-                    console.error(
-                        "Messenger AI Error:",
-                        err?.response?.data ||
-                        err?.message ||
-                        err
-                    );
-
-                    if (
-                        err?.status === 429 ||
-                        err?.message?.includes("429") ||
-                        err?.message?.toLowerCase()?.includes("quota")
-                    ) {
-                        await sendMessengerMessage(
-                            sender_psid,
-                            "माफ गर्नुहोला 🙏 अहिले Nishchal AI को free-tier limit पुगेको छ। केही समयपछि फेरि प्रयास गर्नुहोस्।"
-                        );
-                    } else {
-                        await sendMessengerMessage(
-                            sender_psid,
-                            "माफ गर्नुहोला 🙏 अहिले AI response दिन समस्या भुल्नुभयो। केही समयपछि फेरि प्रयास गर्नुहोस्।"
-                        );
+    for (const entry of body.entry || []) {
+        for (const webhookEvent of entry.messaging || []) {
+            const sender_psid = webhookEvent.sender.id;
+            
+            try {
+                // १. अट्याचमेन्ट ह्यान्डलिङ (फोटो वा भ्वाइस मेसेज)
+                if (webhookEvent.message?.attachments) {
+                    const attachment = webhookEvent.message.attachments[0];
+                    const mediaUrl = attachment.payload.url;
+                    
+                    if (attachment.type === "image") {
+                        // फोटो प्रशोधन गर्ने
+                        const imagePart = await urlToGenerativePart(mediaUrl, "image/jpeg");
+                        const model = getAIModel();
+                        const result = await model.generateContent([imagePart, "यो फोटोमा के छ वा यसले के देखाउँछ? प्रष्टसँग उत्तर दिनुहोस्।"]);
+                        await sendMessengerMessage(sender_psid, result.response.text());
+                    } 
+                    else if (attachment.type === "audio") {
+                        // भ्वाइस मेसेज (अडियो) प्रशोधन गर्ने
+                        const audioPart = await urlToGenerativePart(mediaUrl, "audio/mp4");
+                        const model = getAIModel();
+                        const result = await model.generateContent([audioPart, "यो भ्वाइस मेसेजमा के भनिएको छ? त्यसको उत्तर दिनुहोस्।"]);
+                        await sendMessengerMessage(sender_psid, result.response.text());
+                    }
+                } 
+                // २. टेक्स्ट मेसेज ह्यान्डलिङ
+                else if (webhookEvent.message?.text) {
+                    const userMessage = webhookEvent.message.text;
+                    const lowerMsg = userMessage.toLowerCase();
+                    
+                    // मौसम चेक गर्ने
+                    if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
+                        let city = "Kathmandu";
+                        if (lowerMsg.includes("इलाम")) city = "Ilam";
+                        else if (lowerMsg.includes("पोखरा")) city = "Pokhara";
+                        else if (lowerMsg.includes("विराटनगर")) city = "Biratnagar";
+                        
+                        const weather = await getLiveWeather(city);
+                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन।");
+                    } 
+                    // वेब सर्च चेक गर्ने
+                    else if (lowerMsg.includes("search") || lowerMsg.includes("खोज") || lowerMsg.includes("news")) {
+                        const searchResult = await searchWeb(userMessage);
+                        if (searchResult) {
+                            await sendMessengerMessage(sender_psid, `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}`);
+                        } else {
+                            if (!messengerSessions.has(sender_psid)) {
+                                messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
+                            }
+                            const chat = messengerSessions.get(sender_psid);
+                            const result = await chat.sendMessage(userMessage);
+                            await sendMessengerMessage(sender_psid, result.response.text());
+                        }
+                    }
+                    // साधारण च्याट (मेमरी सहित)
+                    else {
+                        if (!messengerSessions.has(sender_psid)) {
+                            messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
+                        }
+                        const chat = messengerSessions.get(sender_psid);
+                        const result = await chat.sendMessage(userMessage);
+                        await sendMessengerMessage(sender_psid, result.response.text());
                     }
                 }
+            } catch (err) {
+                console.error("Processing Error:", err?.message || err);
+                await sendMessengerMessage(sender_psid, "माफ गर्नुहोला 🙏 यो मेसेज प्रोसेस गर्नमा केही समस्या आयो। फेरि प्रयास गर्नुहोस्।");
             }
         }
-
-        return res.status(200).send("EVENT_RECEIVED");
-
-    } catch (error) {
-        console.error(
-            "Webhook Error:",
-            error?.response?.data ||
-            error?.message ||
-            error
-        );
-
-        return res.status(200).send("EVENT_RECEIVED");
     }
+    res.status(200).send("EVENT_RECEIVED");
 });
 
-// ==========================================
-// SEND MESSAGE TO FACEBOOK
-// ==========================================
-async function sendMessengerMessage(
-    sender_psid,
-    response_text
-) {
-    const request_body = {
-        recipient: {
-            id: sender_psid
-        },
-        message: {
-            text: response_text
-        }
-    };
-
+async function sendMessengerMessage(sender_psid, response_text) {
     try {
-        await axios.post(
-            `https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
-            request_body
-        );
-        console.log("Messenger message sent successfully!");
-    } catch (error) {
-        console.error(
-            "Unable to send messenger message:",
-            error?.response?.data ||
-            error?.message ||
-            error
-        );
-    }
+        await axios.post(`https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
+            recipient: { id: sender_psid },
+            message: { text: response_text }
+        });
+    } catch (error) { console.error("Error sending message:", error?.response?.data || error.message); }
 }
 
-// ==========================================
-// HOME / HEALTH CHECK
-// ==========================================
-app.get("/", (req, res) => {
-    res.send("Nishchal AI is running successfully! 🤖");
-});
-
-// ==========================================
-// SERVER START
-// ==========================================
 app.listen(PORT, "0.0.0.0", () => {
-    console.log("================================");
-    console.log("        NISCHAL AI SERVER");
-    console.log("================================");
-    console.log(`Server is running on port ${PORT}`);
-    console.log("Facebook Webhook: /webhook");
+    console.log(`Nischal AI Server (with Full Memory, Vision, Weather, Search & Voice) is running on port ${PORT}`);
 });
