@@ -94,7 +94,7 @@ Aishan Karki निश्चल नेपालको साथी हुनु�
 // ==========================================
 function getAIModel() {
     return genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash-lite",
         systemInstruction: AI_INSTRUCTIONS
     });
 }
