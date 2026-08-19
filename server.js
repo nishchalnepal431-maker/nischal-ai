@@ -177,6 +177,41 @@ async function urlToGenerativePart(url, mimeType) {
 }
 
 // ==========================================
+// WEBSITE CHAT API ENDPOINT (NEWLY ADDED)
+// ==========================================
+app.post("/api/chat", async (req, res) => {
+    try {
+        if (!AI_ENABLED) {
+            return res.status(403).json({ error: "Nischal AI is currently OFF." });
+        }
+
+        const { messages } = req.body;
+
+        if (!messages || !Array.isArray(messages)) {
+            return res.status(400).json({ error: "Invalid messages format" });
+        }
+
+        const history = messages.slice(0, -1).map(msg => ({
+            role: msg.role === "user" ? "user" : "model",
+            parts: [{ text: msg.content }]
+        }));
+
+        const latestMessage = messages[messages.length - 1].content;
+
+        const model = getAIModel();
+        const chatSession = model.startChat({ history });
+        const result = await chatSession.sendMessage(latestMessage);
+        const answer = result.response.text();
+
+        res.json({ answer });
+
+    } catch (error) {
+        console.error("Website Chat Error:", error.message);
+        res.status(500).json({ error: "AI request failed." });
+    }
+});
+
+// ==========================================
 // FACEBOOK MESSENGER WEBHOOK
 // ==========================================
 
