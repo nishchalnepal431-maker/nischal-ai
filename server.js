@@ -177,7 +177,7 @@ async function urlToGenerativePart(url, mimeType) {
 }
 
 // ==========================================
-// WEBSITE CHAT API ENDPOINT (NEWLY ADDED)
+// WEBSITE CHAT API ENDPOINT (WEATHER & SEARCH ENABLED)
 // ==========================================
 app.post("/api/chat", async (req, res) => {
     try {
@@ -191,12 +191,33 @@ app.post("/api/chat", async (req, res) => {
             return res.status(400).json({ error: "Invalid messages format" });
         }
 
+        const latestMessage = messages[messages.length - 1].content;
+        const lowerMsg = latestMessage.toLowerCase();
+
+        // 1. WEATHER CHECK FOR WEBSITE
+        if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
+            let city = "Kathmandu";
+            if (lowerMsg.includes("इलाम")) city = "Ilam";
+            else if (lowerMsg.includes("पोखरा")) city = "Pokhara";
+            else if (lowerMsg.includes("विराटनगर")) city = "Biratnagar";
+
+            const weather = await getLiveWeather(city);
+            return res.json({ answer: weather || "अहिले मौसम जानकारी उपलब्ध छैन।" });
+        }
+
+        // 2. WEB SEARCH CHECK FOR WEBSITE
+        if (lowerMsg.includes("search") || lowerMsg.includes("खोज") || lowerMsg.includes("news")) {
+            const searchResult = await searchWeb(latestMessage);
+            if (searchResult) {
+                return res.json({ answer: `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}` });
+            }
+        }
+
+        // 3. NORMAL AI CHAT WITH HISTORY FOR WEBSITE
         const history = messages.slice(0, -1).map(msg => ({
             role: msg.role === "user" ? "user" : "model",
             parts: [{ text: msg.content }]
         }));
-
-        const latestMessage = messages[messages.length - 1].content;
 
         const model = getAIModel();
         const chatSession = model.startChat({ history });
@@ -223,224 +244,73 @@ app.post("/webhook", async (req, res) => {
         return res.sendStatus(404);
     }
 
-    // ==========================================
-    // AI OFF CHECK
-    // ==========================================
-
     if (!AI_ENABLED) {
-
         console.log("🔴 Nischal AI is OFF - message ignored");
-
         return res.status(200).send("AI_DISABLED");
     }
 
-    // ==========================================
-    // PROCESS MESSAGES
-    // ==========================================
-
     for (const entry of body.entry || []) {
-
         for (const webhookEvent of entry.messaging || []) {
-
             const sender_psid = webhookEvent.sender.id;
 
             try {
-
-                // ==========================================
-                // ATTACHMENT HANDLING
-                // ==========================================
-
                 if (webhookEvent.message?.attachments) {
-
-                    const attachment =
-                        webhookEvent.message.attachments[0];
-
-                    const mediaUrl =
-                        attachment.payload.url;
-
-                    // ==========================================
-                    // IMAGE
-                    // ==========================================
+                    const attachment = webhookEvent.message.attachments[0];
+                    const mediaUrl = attachment.payload.url;
 
                     if (attachment.type === "image") {
-
-                        const imagePart =
-                            await urlToGenerativePart(
-                                mediaUrl,
-                                "image/jpeg"
-                            );
-
+                        const imagePart = await urlToGenerativePart(mediaUrl, "image/jpeg");
                         const model = getAIModel();
-
-                        const result =
-                            await model.generateContent([
-                                imagePart,
-                                "यो फोटोमा के छ वा यसले के देखाउँछ? प्रष्टसँग उत्तर दिनुहोस्।"
-                            ]);
-
-                        await sendMessengerMessage(
-                            sender_psid,
-                            result.response.text()
-                        );
-                    }
-
-                    // ==========================================
-                    // AUDIO
-                    // ==========================================
-
-                    else if (attachment.type === "audio") {
-
-                        const audioPart =
-                            await urlToGenerativePart(
-                                mediaUrl,
-                                "audio/mp4"
-                            );
-
+                        const result = await model.generateContent([
+                            imagePart,
+                            "यो फोटोमा के छ वा यसले के देखाउँछ? प्रष्टसँग उत्तर दिनुहोस्।"
+                        ]);
+                        await sendMessengerMessage(sender_psid, result.response.text());
+                    } else if (attachment.type === "audio") {
+                        const audioPart = await urlToGenerativePart(mediaUrl, "audio/mp4");
                         const model = getAIModel();
-
-                        const result =
-                            await model.generateContent([
-                                audioPart,
-                                "यो भ्वाइस मेसेजमा के भनिएको छ? त्यसको उत्तर दिनुहोस्।"
-                            ]);
-
-                        await sendMessengerMessage(
-                            sender_psid,
-                            result.response.text()
-                        );
+                        const result = await model.generateContent([
+                            audioPart,
+                            "यो भ्वाइस मेसेजमा के भनिएको छ? त्यसको उत्तर दिनुहोस्।"
+                        ]);
+                        await sendMessengerMessage(sender_psid, result.response.text());
                     }
-                }
+                } else if (webhookEvent.message?.text) {
+                    const userMessage = webhookEvent.message.text;
+                    const lowerMsg = userMessage.toLowerCase();
 
-                // ==========================================
-                // TEXT MESSAGE
-                // ==========================================
-
-                else if (webhookEvent.message?.text) {
-
-                    const userMessage =
-                        webhookEvent.message.text;
-
-                    const lowerMsg =
-                        userMessage.toLowerCase();
-
-                    // ==========================================
-                    // WEATHER
-                    // ==========================================
-
-                    if (
-                        lowerMsg.includes("मौसम") ||
-                        lowerMsg.includes("weather")
-                    ) {
-
+                    if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
                         let city = "Kathmandu";
+                        if (lowerMsg.includes("इलाम")) city = "Ilam";
+                        else if (lowerMsg.includes("पोखरा")) city = "Pokhara";
+                        else if (lowerMsg.includes("विराटनगर")) city = "Biratnagar";
 
-                        if (lowerMsg.includes("इलाम")) {
-                            city = "Ilam";
-                        }
-
-                        else if (lowerMsg.includes("पोखरा")) {
-                            city = "Pokhara";
-                        }
-
-                        else if (lowerMsg.includes("विराटनगर")) {
-                            city = "Biratnagar";
-                        }
-
-                        const weather =
-                            await getLiveWeather(city);
-
-                        await sendMessengerMessage(
-                            sender_psid,
-                            weather ||
-                            "अहिले मौसम जानकारी उपलब्ध छैन।"
-                        );
-                    }
-
-                    // ==========================================
-                    // WEB SEARCH
-                    // ==========================================
-
-                    else if (
-                        lowerMsg.includes("search") ||
-                        lowerMsg.includes("खोज") ||
-                        lowerMsg.includes("news")
-                    ) {
-
-                        const searchResult =
-                            await searchWeb(userMessage);
-
+                        const weather = await getLiveWeather(city);
+                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन।");
+                    } else if (lowerMsg.includes("search") || lowerMsg.includes("खोज") || lowerMsg.includes("news")) {
+                        const searchResult = await searchWeb(userMessage);
                         if (searchResult) {
-
-                            await sendMessengerMessage(
-                                sender_psid,
-                                `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}`
-                            );
-
+                            await sendMessengerMessage(sender_psid, `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}`);
                         } else {
-
                             if (!messengerSessions.has(sender_psid)) {
-
-                                messengerSessions.set(
-                                    sender_psid,
-                                    getAIModel().startChat({
-                                        history: []
-                                    })
-                                );
+                                messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
                             }
-
-                            const chat =
-                                messengerSessions.get(sender_psid);
-
-                            const result =
-                                await chat.sendMessage(userMessage);
-
-                            await sendMessengerMessage(
-                                sender_psid,
-                                result.response.text()
-                            );
+                            const chat = messengerSessions.get(sender_psid);
+                            const result = await chat.sendMessage(userMessage);
+                            await sendMessengerMessage(sender_psid, result.response.text());
                         }
-                    }
-
-                    // ==========================================
-                    // NORMAL AI CHAT
-                    // ==========================================
-
-                    else {
-
+                    } else {
                         if (!messengerSessions.has(sender_psid)) {
-
-                            messengerSessions.set(
-                                sender_psid,
-                                getAIModel().startChat({
-                                    history: []
-                                })
-                            );
+                            messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
                         }
-
-                        const chat =
-                            messengerSessions.get(sender_psid);
-
-                        const result =
-                            await chat.sendMessage(userMessage);
-
-                        await sendMessengerMessage(
-                            sender_psid,
-                            result.response.text()
-                        );
+                        const chat = messengerSessions.get(sender_psid);
+                        const result = await chat.sendMessage(userMessage);
+                        await sendMessengerMessage(sender_psid, result.response.text());
                     }
                 }
-
             } catch (err) {
-
-                console.error(
-                    "Processing Error:",
-                    err?.message || err
-                );
-
-                await sendMessengerMessage(
-                    sender_psid,
-                    "माफ गर्नुहोला 🙏 यो मेसेज प्रोसेस गर्नमा केही समस्या आयो। फेरि प्रयास गर्नुहोस्।"
-                );
+                console.error("Processing Error:", err?.message || err);
+                await sendMessengerMessage(sender_psid, "माफ गर्नुहोला 🙏 यो मेसेज प्रोसेस गर्नमा केही समस्या आयो। फेरि प्रयास गर्नुहोस्।");
             }
         }
     }
@@ -452,33 +322,17 @@ app.post("/webhook", async (req, res) => {
 // SEND MESSAGE TO FACEBOOK
 // ==========================================
 
-async function sendMessengerMessage(
-    sender_psid,
-    response_text
-) {
-
+async function sendMessengerMessage(sender_psid, response_text) {
     try {
-
         await axios.post(
             `https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
             {
-                recipient: {
-                    id: sender_psid
-                },
-
-                message: {
-                    text: response_text
-                }
+                recipient: { id: sender_psid },
+                message: { text: response_text }
             }
         );
-
     } catch (error) {
-
-        console.error(
-            "Error sending message:",
-            error?.response?.data ||
-            error.message
-        );
+        console.error("Error sending message:", error?.response?.data || error.message);
     }
 }
 
@@ -487,31 +341,14 @@ async function sendMessengerMessage(
 // ==========================================
 
 app.get("/", (req, res) => {
-
-    res.send(
-        AI_ENABLED
-            ? "🟢 Nischal AI is ONLINE"
-            : "🔴 Nischal AI is OFF"
-    );
+    res.send(AI_ENABLED ? "🟢 Nischal AI is ONLINE" : "🔴 Nischal AI is OFF");
 });
 
 // ==========================================
 // START SERVER
 // ==========================================
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
-
-        console.log(
-            `Nischal AI Server is running on port ${PORT}`
-        );
-
-        console.log(
-            AI_ENABLED
-                ? "🟢 AI STATUS: ON"
-                : "🔴 AI STATUS: OFF"
-        );
-    }
-);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Nischal AI Server is running on port ${PORT}`);
+    console.log(AI_ENABLED ? "🟢 AI STATUS: ON" : "🔴 AI STATUS: OFF");
+});
