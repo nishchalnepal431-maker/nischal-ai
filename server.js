@@ -30,9 +30,6 @@ const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
 // ==========================================
 // AI ON / OFF CONTROL
-// Render Environment Variable:
-// AI_ENABLED=true  → AI ON
-// AI_ENABLED=false → AI OFF
 // ==========================================
 const AI_ENABLED = process.env.AI_ENABLED !== "false";
 
@@ -45,13 +42,16 @@ const messengerSessions = new Map();
 // NISCHAL AI SYSTEM INSTRUCTIONS
 // ==========================================
 const AI_INSTRUCTIONS = `
-You are Nischal AI, a helpful technical AI assistant.
+You are Nischal AI, a helpful, intelligent technical AI assistant created by Nischal Nepal.
 
 LANGUAGE RULE:
 If the user speaks Nepali, answer in Nepali.
 If the user speaks English, answer in English.
 If the user uses Nepali-English mix, answer naturally in Nepali-English mix.
-Keep answers friendly, clear and easy to understand.
+Keep answers friendly, clear and accurate.
+
+CURRENT CONTEXT & KNOWLEDGE:
+You should always provide up-to-date and correct information regarding current events, leaders, and general knowledge.
 
 ==================================================
 CREATOR RULE
@@ -109,11 +109,25 @@ function getAIModel() {
 }
 
 // ==========================================
-// LIVE WEATHER
+// LIVE WEATHER (Smart City Extractor)
 // ==========================================
 
-async function getLiveWeather(city) {
+async function getLiveWeather(userMessage) {
     try {
+        // साधारण शब्दहरू हटाएर ठाउँको नाम पत्ता लगाउने प्रयास
+        let city = "Kathmandu"; // Default
+        const text = userMessage.toLowerCase();
+        
+        // नेपालका प्रमुख शहरहरू वा जुनसुकै ठाउँको नाम म्याच गर्न
+        const cities = ["jhapa", "झापा", "ilam", "इलाम", "pokhara", "पोखरा", "biratnagar", "विराटनगर", "kathmandu", "काठमाडौं", "lalitpur", "lalitpur", "bhaktapur", "dharan", "धरान", "butwal", "बुटवल", "chitwan", "चितवन", "hetauda", "हेटौंडा"];
+        
+        for (let c of cities) {
+            if (text.includes(c)) {
+                city = c;
+                break;
+            }
+        }
+
         const response = await axios.get(
             `https://wttr.in/${encodeURIComponent(city)}?format=3`,
             { timeout: 5000 }
@@ -149,7 +163,9 @@ async function searchWeb(query) {
             response.data.RelatedTopics &&
             response.data.RelatedTopics.length > 0
         ) {
-            return response.data.RelatedTopics[0].Text || null;
+            for (let topic of response.data.RelatedTopics) {
+                if (topic.Text) return topic.Text;
+            }
         }
 
     } catch (e) {
@@ -177,7 +193,7 @@ async function urlToGenerativePart(url, mimeType) {
 }
 
 // ==========================================
-// WEBSITE CHAT API ENDPOINT (WEATHER & SEARCH ENABLED)
+// WEBSITE CHAT API ENDPOINT
 // ==========================================
 app.post("/api/chat", async (req, res) => {
     try {
@@ -194,35 +210,24 @@ app.post("/api/chat", async (req, res) => {
         const latestMessage = messages[messages.length - 1].content;
         const lowerMsg = latestMessage.toLowerCase();
 
-        // 1. WEATHER CHECK FOR WEBSITE
+        // 1. DYNAMIC WEATHER CHECK
         if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
-            let city = "Kathmandu";
-            if (lowerMsg.includes("इलाम")) city = "Ilam";
-            else if (lowerMsg.includes("पोखरा")) city = "Pokhara";
-            else if (lowerMsg.includes("विराटनगर")) city = "Biratnagar";
-
-            const weather = await getLiveWeather(city);
-            return res.json({ answer: weather || "अहिले मौसम जानकारी उपलब्ध छैन।" });
-        }
-
-        // 2. WEB SEARCH CHECK FOR WEBSITE
-        if (lowerMsg.includes("search") || lowerMsg.includes("खोज") || lowerMsg.includes("news")) {
-            const searchResult = await searchWeb(latestMessage);
-            if (searchResult) {
-                return res.json({ answer: `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}` });
+            const weather = await getLiveWeather(latestMessage);
+            if (weather) {
+                return res.json({ answer: weather });
             }
         }
 
-        // 3. NORMAL AI CHAT WITH HISTORY FOR WEBSITE
+        // 2. WEB SEARCH CHECK OR GENERAL AI FALLBACK
+        const model = getAIModel();
         const history = messages.slice(0, -1).map(msg => ({
             role: msg.role === "user" ? "user" : "model",
             parts: [{ text: msg.content }]
         }));
 
-        const model = getAIModel();
         const chatSession = model.startChat({ history });
         const result = await chatSession.sendMessage(latestMessage);
-        const answer = result.response.text();
+        let answer = result.response.text();
 
         res.json({ answer });
 
@@ -237,7 +242,6 @@ app.post("/api/chat", async (req, res) => {
 // ==========================================
 
 app.post("/webhook", async (req, res) => {
-
     const body = req.body;
 
     if (body.object !== "page") {
@@ -279,27 +283,12 @@ app.post("/webhook", async (req, res) => {
                     const userMessage = webhookEvent.message.text;
                     const lowerMsg = userMessage.toLowerCase();
 
+                    // 1. WEATHER CHECK
                     if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
-                        let city = "Kathmandu";
-                        if (lowerMsg.includes("इलाम")) city = "Ilam";
-                        else if (lowerMsg.includes("पोखरा")) city = "Pokhara";
-                        else if (lowerMsg.includes("विराटनगर")) city = "Biratnagar";
-
-                        const weather = await getLiveWeather(city);
+                        const weather = await getLiveWeather(userMessage);
                         await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन।");
-                    } else if (lowerMsg.includes("search") || lowerMsg.includes("खोज") || lowerMsg.includes("news")) {
-                        const searchResult = await searchWeb(userMessage);
-                        if (searchResult) {
-                            await sendMessengerMessage(sender_psid, `इन्टरनेटबाट प्राप्त जानकारी:\n\n${searchResult}`);
-                        } else {
-                            if (!messengerSessions.has(sender_psid)) {
-                                messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
-                            }
-                            const chat = messengerSessions.get(sender_psid);
-                            const result = await chat.sendMessage(userMessage);
-                            await sendMessengerMessage(sender_psid, result.response.text());
-                        }
                     } else {
+                        // 2. NORMAL AI CHAT & NEWS HANDLING
                         if (!messengerSessions.has(sender_psid)) {
                             messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
                         }
