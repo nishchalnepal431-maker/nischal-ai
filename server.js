@@ -79,7 +79,7 @@ If the user specifically asks about Nishchal Nepal, use ONLY this information:
 निश्चल नेपाल Nishchal AI लाई coding गरेर बनाउने व्यक्ति हुनुहुन्छ।
 उहाँका बाबाको नाम गङ्गाप्रसाद नेपाल हो।
 उहाँकी आमाको नाम कमला नेपाल हो।
-उहाँकी दिदीको नाम सुस्मिता नेपाल हो।
+উहाँकी दिदीको नाम सुस्मिता नेपाल हो।
 उहाँकी अर्को दिदीको नाम अनशिका नेपाल हो।
 उहाँका बाबा शिक्षक तथा प्रधानाध्यापक हुनुहुन्छ।
 
@@ -114,11 +114,9 @@ function getAIModel() {
 
 async function getLiveWeather(userMessage) {
     try {
-        // साधारण शब्दहरू हटाएर ठाउँको नाम पत्ता लगाउने प्रयास
         let city = "Kathmandu"; // Default
         const text = userMessage.toLowerCase();
         
-        // नेपालका प्रमुख शहरहरू वा जुनसुकै ठाउँको नाम म्याच गर्न
         const cities = ["jhapa", "झापा", "ilam", "इलाम", "pokhara", "पोखरा", "biratnagar", "विराटनगर", "kathmandu", "काठमाडौं", "lalitpur", "lalitpur", "bhaktapur", "dharan", "धरान", "butwal", "बुटवल", "chitwan", "चितवन", "hetauda", "हेटौंडा"];
         
         for (let c of cities) {
@@ -144,34 +142,35 @@ async function getLiveWeather(userMessage) {
 }
 
 // ==========================================
-// FREE WEB SEARCH
+// ADVANCED WEB SEARCH (For News & Current Info)
 // ==========================================
 
 async function searchWeb(query) {
     try {
         const response = await axios.get(
-            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`,
+            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
             { timeout: 5000 }
         );
 
-        if (response.data && response.data.AbstractText) {
-            return response.data.AbstractText;
-        }
-
-        if (
-            response.data &&
-            response.data.RelatedTopics &&
-            response.data.RelatedTopics.length > 0
-        ) {
-            for (let topic of response.data.RelatedTopics) {
-                if (topic.Text) return topic.Text;
+        if (response.data) {
+            if (response.data.AbstractText) {
+                return response.data.AbstractText;
+            }
+            if (response.data.RelatedTopics && response.data.RelatedTopics.length > 0) {
+                let results = [];
+                for (let topic of response.data.RelatedTopics) {
+                    if (topic.Text) {
+                        results.push(topic.Text);
+                    }
+                }
+                if (results.length > 0) {
+                    return results.slice(0, 3).join("\n\n");
+                }
             }
         }
-
     } catch (e) {
         console.error("Web Search Error:", e.message);
     }
-
     return null;
 }
 
@@ -218,7 +217,15 @@ app.post("/api/chat", async (req, res) => {
             }
         }
 
-        // 2. WEB SEARCH CHECK OR GENERAL AI FALLBACK
+        // 2. NEWS OR WEB SEARCH CHECK
+        if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("search")) {
+            const searchResult = await searchWeb(latestMessage);
+            if (searchResult) {
+                return res.json({ answer: `इन्टरनेटबाट प्राप्त ताजा जानकारी:\n\n${searchResult}` });
+            }
+        }
+
+        // 3. NORMAL AI CHAT
         const model = getAIModel();
         const history = messages.slice(0, -1).map(msg => ({
             role: msg.role === "user" ? "user" : "model",
@@ -287,8 +294,23 @@ app.post("/webhook", async (req, res) => {
                     if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
                         const weather = await getLiveWeather(userMessage);
                         await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन।");
-                    } else {
-                        // 2. NORMAL AI CHAT & NEWS HANDLING
+                    } 
+                    // 2. NEWS OR SEARCH CHECK
+                    else if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("search")) {
+                        const searchResult = await searchWeb(userMessage);
+                        if (searchResult) {
+                            await sendMessengerMessage(sender_psid, `इन्टरनेटबाट प्राप्त ताजा जानकारी:\n\n${searchResult}`);
+                        } else {
+                            if (!messengerSessions.has(sender_psid)) {
+                                messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
+                            }
+                            const chat = messengerSessions.get(sender_psid);
+                            const result = await chat.sendMessage(userMessage);
+                            await sendMessengerMessage(sender_psid, result.response.text());
+                        }
+                    } 
+                    // 3. NORMAL AI CHAT
+                    else {
                         if (!messengerSessions.has(sender_psid)) {
                             messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
                         }
