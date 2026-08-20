@@ -101,18 +101,18 @@ Aishan Karki निश्चल नेपालको साथी हुनु�
 
 function getAIModel() {
     return genAI.getGenerativeModel({
-        model: "gemini-3.5-flash-lite", // तपाईंले भन्नुभएको मोडल फिर्ता राखियो
+        model: "gemini-3.5-flash-lite",
         systemInstruction: AI_INSTRUCTIONS
     });
 }
 
 // ==========================================
-// 1. LIVE WEATHER (Using Weatherstack API)
+// 1. LIVE WEATHER (Using wttr.in - Super Fast & Accurate)
 // ==========================================
 
 async function getLiveWeather(userMessage) {
     try {
-        let city = "Birtamode"; // Default to Birtamode
+        let city = "Birtamode"; // Default to Birtamode as requested
         const text = userMessage.toLowerCase();
         
         const cities = ["birtamode", "बिर्तामोड", "jhapa", "झापा", "ilam", "इलाम", "pokhara", "पोखरा", "biratnagar", "विराटनगर", "kathmandu", "काठमाडौं", "lalitpur", "ललितपुर", "bhaktapur", "भक्तपुर", "dharan", "धरान", "butwal", "बुटवल", "chitwan", "चितवन", "hetauda", "हेटौंडा"];
@@ -124,41 +124,35 @@ async function getLiveWeather(userMessage) {
             }
         }
 
-        if (!WEATHERSTACK_API_KEY) {
-            return "मौसम जानकारीका लागि Weatherstack API Key सेट गरिएको छैन 🌦️।";
-        }
-
         const response = await axios.get(
-            `http://api.weatherstack.com/current?access_key=${WEATHERSTACK_API_KEY}&query=${encodeURIComponent(city)}`,
+            `https://wttr.in/${encodeURIComponent(city)}?format=3`,
             { timeout: 5000 }
         );
 
-        if (response.data && response.data.current) {
-            const current = response.data.current;
-            const location = response.data.location;
-            return `स्थान: ${location.name}, ${location.country}\nतापक्रम: ${current.temperature}°C\nमौसम: ${current.weather_descriptions.join(", ")}\nहावाको गति: ${current.wind_speed} km/h 🌤️`;
+        if (response.status === 200 && response.data) {
+            return `हालको मौसम (${city}): ${response.data.trim()} 🌤️`;
         }
 
-        return null;
+        return "अहिले मौसमको जानकारी फेला पार्न सकिएन 🌦️।";
     } catch (e) {
         console.error("Weather Error:", e.message);
-        return null;
+        return "मौसमको जानकारी ल्याउँदा समस्या भयो 🌦️।";
     }
 }
 
 // ==========================================
-// 2. ADVANCED WEB SEARCH / NEWS (Using Gemini Google Search Tool)
+// 2. ADVANCED WEB SEARCH / TODAY'S NEWS (Using Gemini Google Search Tool)
 // ==========================================
 
 async function searchWeb(query) {
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-3.5-flash-lite", // यही मोडल प्रयोग गरिएको
+            model: "gemini-3.5-flash-lite",
             tools: [{ googleSearch: {} }],
             systemInstruction: AI_INSTRUCTIONS
         });
 
-        const result = await model.generateContent(query);
+        const result = await model.generateContent(`Provide today's latest news or accurate information in clear Nepali for: ${query}`);
         return result.response.text();
     } catch (e) {
         console.error("Web Search Error:", e.message);
@@ -304,7 +298,7 @@ app.post("/webhook", async (req, res) => {
                     // 1. WEATHER CHECK
                     if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather") || lowerMsg.includes("तापक्रम")) {
                         const weather = await getLiveWeather(userMessage);
-                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन 🌦️।");
+                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन 🌦️。");
                     } 
                     // 2. NEWS OR SEARCH CHECK
                     else if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("आज") || lowerMsg.includes("तथ्य") || lowerMsg.includes("search")) {
