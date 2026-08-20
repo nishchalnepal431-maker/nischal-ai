@@ -27,7 +27,6 @@ app.use(express.static(__dirname));
 
 const VERIFY_TOKEN = "nischal_bot_verify_token_2026";
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-const WEATHERSTACK_API_KEY = process.env.WEATHERSTACK_API_KEY;
 
 // ==========================================
 // AI ON / OFF CONTROL
@@ -64,7 +63,7 @@ ONLY when the user specifically asks questions like:
 "Who is your creator?"
 
 Answer:
-"मलाई निश्चल नेपालले coding गरेर बनाउनुभएको हो 👨‍💻✨."
+"मलाई निश्चल नेपालले coding गरेर बनाउनुभएको हो 👨‍💻✨।"
 
 IMPORTANT:
 Do NOT mention Nischal Nepal as your creator in normal answers.
@@ -107,15 +106,15 @@ function getAIModel() {
 }
 
 // ==========================================
-// 1. LIVE WEATHER (Using wttr.in - Super Fast & Accurate)
+// LIVE WEATHER (Smart City Extractor)
 // ==========================================
 
 async function getLiveWeather(userMessage) {
     try {
-        let city = "Birtamode"; // Default to Birtamode as requested
+        let city = "Kathmandu"; // Default
         const text = userMessage.toLowerCase();
         
-        const cities = ["birtamode", "बिर्तामोड", "jhapa", "झापा", "ilam", "इलाम", "pokhara", "पोखरा", "biratnagar", "विराटनगर", "kathmandu", "काठमाडौं", "lalitpur", "ललितपुर", "bhaktapur", "भक्तपुर", "dharan", "धरान", "butwal", "बुटवल", "chitwan", "चितवन", "hetauda", "हेटौंडा"];
+        const cities = ["jhapa", "झापा", "ilam", "इलाम", "pokhara", "पोखरा", "biratnagar", "विराटनगर", "kathmandu", "काठमाडौं", "lalitpur", "lalitpur", "bhaktapur", "dharan", "धरान", "butwal", "बुटवल", "chitwan", "चितवन", "hetauda", "हेटौंडा"];
         
         for (let c of cities) {
             if (text.includes(c)) {
@@ -129,35 +128,47 @@ async function getLiveWeather(userMessage) {
             { timeout: 5000 }
         );
 
-        if (response.status === 200 && response.data) {
-            return `हालको मौसम (${city}): ${response.data.trim()} 🌤️`;
-        }
+        return response.status === 200
+            ? `हालको मौसम (${city}): ${response.data.trim()} 🌤️`
+            : null;
 
-        return "अहिले मौसमको जानकारी फेला पार्न सकिएन 🌦️।";
     } catch (e) {
         console.error("Weather Error:", e.message);
-        return "मौसमको जानकारी ल्याउँदा समस्या भयो 🌦️।";
+        return null;
     }
 }
 
 // ==========================================
-// 2. ADVANCED WEB SEARCH / TODAY'S NEWS (Using Gemini Google Search Tool)
+// ADVANCED WEB SEARCH (For News & Current Info)
 // ==========================================
 
 async function searchWeb(query) {
     try {
-        const model = genAI.getGenerativeModel({
-            model: "gemini-3.5-flash-lite",
-            tools: [{ googleSearch: {} }],
-            systemInstruction: AI_INSTRUCTIONS
-        });
+        const response = await axios.get(
+            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
+            { timeout: 5000 }
+        );
 
-        const result = await model.generateContent(`Provide today's latest news or accurate information in clear Nepali for: ${query}`);
-        return result.response.text();
+        if (response.data) {
+            if (response.data.AbstractText) {
+                return response.data.AbstractText;
+            }
+            if (response.data.RelatedTopics && response.data.RelatedTopics.length > 0) {
+                let results = [];
+                for (let topic of response.data.RelatedTopics) {
+                    if (topic.Text) {
+                        results.push(topic.Text);
+                    }
+                }
+                if (results.length > 0) {
+                    return results.slice(0, 3).join("\n\n");
+                }
+            }
+        }
     } catch (e) {
         console.error("Web Search Error:", e.message);
-        return null;
     }
+    return null;
 }
 
 // ==========================================
@@ -196,7 +207,7 @@ app.post("/api/chat", async (req, res) => {
         const lowerMsg = latestMessage.toLowerCase();
 
         // 1. DYNAMIC WEATHER CHECK
-        if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather") || lowerMsg.includes("तापक्रम")) {
+        if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
             const weather = await getLiveWeather(latestMessage);
             if (weather) {
                 return res.json({ answer: weather });
@@ -204,10 +215,10 @@ app.post("/api/chat", async (req, res) => {
         }
 
         // 2. NEWS OR WEB SEARCH CHECK
-        if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("आज") || lowerMsg.includes("तथ्य") || lowerMsg.includes("search")) {
+        if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("search")) {
             const searchResult = await searchWeb(latestMessage);
             if (searchResult) {
-                return res.json({ answer: searchResult });
+                return res.json({ answer: `इन्टरनेटबाट प्राप्त ताजा जानकारी:\n\n${searchResult} 📰` });
             }
         }
 
@@ -234,25 +245,6 @@ app.post("/api/chat", async (req, res) => {
 // FACEBOOK MESSENGER WEBHOOK
 // ==========================================
 
-// Webhook Verification (GET)
-app.get("/webhook", (req, res) => {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
-
-    if (mode && token) {
-        if (mode === "subscribe" && token === VERIFY_TOKEN) {
-            console.log("WEBHOOK_VERIFIED");
-            res.status(200).send(challenge);
-        } else {
-            res.sendStatus(403);
-        }
-    } else {
-        res.sendStatus(400);
-    }
-});
-
-// Webhook Messages (POST)
 app.post("/webhook", async (req, res) => {
     const body = req.body;
 
@@ -296,15 +288,15 @@ app.post("/webhook", async (req, res) => {
                     const lowerMsg = userMessage.toLowerCase();
 
                     // 1. WEATHER CHECK
-                    if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather") || lowerMsg.includes("तापक्रम")) {
+                    if (lowerMsg.includes("मौसम") || lowerMsg.includes("weather")) {
                         const weather = await getLiveWeather(userMessage);
-                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन 🌦️。");
+                        await sendMessengerMessage(sender_psid, weather || "अहिले मौसम जानकारी उपलब्ध छैन 🌦️।");
                     } 
                     // 2. NEWS OR SEARCH CHECK
-                    else if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("आज") || lowerMsg.includes("तथ्य") || lowerMsg.includes("search")) {
+                    else if (lowerMsg.includes("news") || lowerMsg.includes("न्युज") || lowerMsg.includes("समाचार") || lowerMsg.includes("प्रधानमन्त्री") || lowerMsg.includes("pm") || lowerMsg.includes("search")) {
                         const searchResult = await searchWeb(userMessage);
                         if (searchResult) {
-                            await sendMessengerMessage(sender_psid, searchResult);
+                            await sendMessengerMessage(sender_psid, `इन्टरनेटबाट प्राप्त ताजा जानकारी:\n\n${searchResult} 📰`);
                         } else {
                             if (!messengerSessions.has(sender_psid)) {
                                 messengerSessions.set(sender_psid, getAIModel().startChat({ history: [] }));
